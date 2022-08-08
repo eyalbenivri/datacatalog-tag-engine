@@ -22,26 +22,31 @@
 			   <br>&nbsp;&nbsp;You may optionally exclude any datasets and/or tables and views from your report. 
 		        <br><br>&nbsp;&nbsp;Mandatory settings are marked by <span style="color:red;">*</span>
 		   </h6>
-	   </span> 
+	   </span>
+        {% for enabled, coverage_settings, group in groups_coverage_settings %}
+            <h3>Coverage Settings for Group {{ group['data_domain'] }}</h3>
          <form method="post" action="/set_coverage">
+            <input type="hidden" name="group_key" value="{{ group['group_key'] }}" />
 		    <table>
 		        <tr>
 		          <td><span style="color:red;">*</span> BigQuery Project Ids:</td>
-		          <td>&nbsp;<input type="text" name="project_ids" value="{{ project_ids }}" style="width: 500px;padding: 3px;"></td>
+		          <td>&nbsp;<input type="text" name="project_ids" value="{{ coverage_settings.get('project_ids', '') }}" placeholder="{projectA}, {projectB}, {projectC}" style="width: 500px;padding: 3px;"></td>
 			   </tr>
 		        <tr>
 		          <td>&nbsp;&nbsp;Exclude Datasets:</td>
-		          <td>&nbsp;<input type="text" name="datasets" value="{{ datasets }}" style="width: 500px;padding: 3px;"></td>
+		          <td>&nbsp;<input type="text" name="datasets" value="{{ coverage_settings.get('datasets', '') }}" placeholder="{project.dataset1}, {project.dataset2}, {project.dataset3}" style="width: 500px;padding: 3px;"></td>
 			   </tr>
 		        <tr>
 		          <td>&nbsp;&nbsp;Exclude Tables/Views:</td>
-		          <td>&nbsp;<input type="text" name="tables" value="{{ tables }}" style="width: 500px;padding: 3px;"></td>
+		          <td>&nbsp;<input type="text" name="tables" value="{{ coverage_settings.get('tables', '') }}" placeholder="{project.dataset.table1}, {project.dataset.table2}, {project.dataset.view3}" style="width: 500px;padding: 3px;"></td>
 			   </tr>
 			    <td></td>
 			    <td>&nbsp;<input type="submit" value="Save" name="submit" style="width: 148px;padding: 3px;"></td>
 		    </table>
            
          </form>
+        {% endfor %}
+
 	    <p>&nbsp;&nbsp;<a href="{{ url_for('coverage_report') }}">Coverage Report</a>&nbsp;&nbsp;<a href="/">Homepage</a></p>
     </body>
 </html>

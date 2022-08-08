@@ -19,15 +19,28 @@
 		    <table>
 		        <tr>
 		          <td>Tag Template Id:</td>
-		          <td><input type="text" name="template_id" value="{{ template_id }}" style="width: 150px;padding: 3px;"></td>
+		          <td><input type="text" name="template_id" value="{{ template_id }}" placeholder="{your_template_id}" style="width: 150px;padding: 3px;"></td>
 			   </tr>
 		        <tr>
 		          <td>GCP Project Id:</td>
-		          <td><input type="text" name="project_id" value="{{ project_id }}" style="width: 150px;padding: 3px;"></td>
+		          <td><input type="text" name="project_id" value="{{ project_id }}" placeholder="{your_project_id}" style="width: 150px;padding: 3px;"></td>
 			   </tr>
 		        <tr>
 		          <td>GCP Region:</td>
-		          <td><input type="text" name="region" value="{{ region }}" style="width: 150px;padding: 3px;"></td>
+		          <td><input type="text" name="region" value="{{ region }}" placeholder="{your_region}" style="width: 150px;padding: 3px;"></td>
+			   </tr>
+                <tr>
+                    <td><label for="group">Owning group:</label></td>
+		          <td>
+                      <select id="group" required name="group" style="width: 150px;padding: 3px;" {% if groups|length < 2%}disabled{% endif %}>
+                        {% if not group and groups|length < 2 %}
+                            <option disabled selected value="">Choose group</option>
+                      {% endif %}
+                        {% for g in groups %}
+                          <option {%  if g['group_key']==group['group_key'] %}selected{% endif %} value="{{ g['group_key'] }}">{{ g['data_domain'] }}</option>
+                        {% endfor %}
+                      </select>
+                  </td>
 			   </tr>
 			    <td></td>
 			    <td><input type="submit" value="Search Template" name="search" style="width: 158px;padding: 3px;"></td>

@@ -34,15 +34,18 @@ import TagEngineUtils as te
 import BigQueryUtils as bq
 import PubSubUtils as ps
 import constants
+from UserUtils import UserUtils
+
 
 class DataCatalogUtils:
     
-    def __init__(self, template_id=None, project_id=None, region=None):
+    def __init__(self, user_email: str, template_id=None, project_id=None, region=None):
         self.template_id = template_id
         self.project_id = project_id
         self.region = region
-        
-        self.client = DataCatalogClient()
+        self.user_email = user_email
+        creds = UserUtils.get_credentials(user_email)
+        self.client = DataCatalogClient(credentials=creds)
         
         if template_id is not None and project_id is not None and region is not None:
             self.template_path = DataCatalogClient.tag_template_path(project_id, region, template_id)
@@ -188,7 +191,7 @@ class DataCatalogUtils:
         print('*** apply_static_config ***')
 
         # uri is either a BQ table/view path or GCS file path
-        store = te.TagEngineUtils()        
+        store = te.TagEngineUtils()
         creation_status = constants.SUCCESS
         column = ''
         

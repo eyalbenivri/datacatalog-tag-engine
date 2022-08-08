@@ -19,6 +19,7 @@
 	   Mandatory template fields are marked by <span style="color:red;">*</span> and are already checked for you. 
 	   </h5>
          <form method="post" action="/process_static_config">
+            <input type="hidden" name="group" value="{{ group['group_key'] }}" />
 		    <table>
 			   {% for dict_field in fields %}
 		        <tr>

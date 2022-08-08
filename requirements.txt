@@ -1,10 +1,10 @@
-Flask==2.0.3
-google-cloud-datacatalog==3.7.1
+Flask==2.1.2
+google-cloud-datacatalog==3.8.0
 google-cloud-bigquery
 google-cloud-core
-google-cloud-firestore==2.3.4
+google-cloud-firestore==2.5.0
 google-cloud-storage
-google-cloud-tasks==2.7.1
+google-cloud-tasks==2.9.0
 google-cloud-pubsub
 pytz
 pandas

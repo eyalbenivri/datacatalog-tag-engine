@@ -24,9 +24,11 @@
 			 <br><br>&nbsp;&nbsp;Enter the BQ details for your tag history tables. Tag Engine will not create the BQ dataset, you must create it outside of Tag Engine before enabling tag history. 
 			 <br><br>&nbsp;&nbsp;Mandatory settings are marked by <span style="color:red;">*</span>
 		   </h6>
-	   </span> 
-         <form method="post" action="/set_tag_history">
-		   
+	   </span>
+        {% for enabled, settings, group in groups_with_tag_history_settings %}
+            <h3>Settings for Group {{ group['data_domain'] }}</h3>
+            <form method="post" action="/set_tag_history">
+		   <input type="hidden" name="group_key" value="{{ group['group_key'] }}" />
 		   <table>
 			   <tr><td><span style="color:red;">*</span>&nbsp;Enable Tag History:</td>
 				   <td>&nbsp;<select name="enabled" style="width: 80px;">`
@@ -40,27 +42,29 @@
 						   </select>
 			    	  </td>
 		    </tr>
-	    
+
 		        <tr>
 		          <td><span style="color:red;">*</span>&nbsp;BigQuery Project Id:</td>
-		          <td>&nbsp;<input type="text" name="project_id" value="{{ project_id }}" style="width: 150px;padding: 3px;"></td>
+		          <td>&nbsp;<input type="text" name="project_id" value="{{ settings.get('project_id', '') }}" placeholder="{{'{{your_project_id}}'}}" style="width: 150px;padding: 3px;"></td>
 			   </tr>
 		        <tr>
 		          <td><span style="color:red;">*</span>&nbsp;BigQuery Region:</td>
-		          <td>&nbsp;<input type="text" name="region" value="{{ region }}" style="width: 150px;padding: 3px;"></td>
+		          <td>&nbsp;<input type="text" name="region" value="{{ settings.get('region', '') }}" placeholder="{{'{{your_region}}'}}" style="width: 150px;padding: 3px;"></td>
 			   </tr>
 		        <tr>
 		          <td><span style="color:red;">*</span>&nbsp;BigQuery Dataset:</td>
-		          <td>&nbsp;<input type="text" name="dataset" value="{{ dataset }}" style="width: 150px;padding: 3px;"></td>
+		          <td>&nbsp;<input type="text" name="dataset" value="{{ settings.get('dataset', '') }}" placeholder="{{'{{your_dataset}}'}}" style="width: 150px;padding: 3px;"></td>
 			   </tr>
 			   <tr>
 			   <td></td>
-			    <td>&nbsp;<input type="submit" value="Save Settings" name="submit" style="width: 160px;padding: 3px;"></td> 
-			     
+			    <td>&nbsp;<input type="submit" value="Save Settings for group {{ group['data_domain'] }}" name="submit" style="padding: 3px;"></td>
+
 			  </tr>
 		    </table>
-           
+
          </form>
+        {%  endfor %}
+
 	    <p>&nbsp;&nbsp;<a href="/">Homepage</a></p>
     </body>
 </html>

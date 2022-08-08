@@ -41,10 +41,11 @@ gcloud app deploy datacatalog-tag-engine/app.yaml
 #### Step 6: Create a service account for running the Terraform scripts:
 ```                
 gcloud iam service-accounts create terraform
-gcloud iam service-accounts keys create key.json --iam-account=$TERRAFORM_SA 
+gcloud iam service-accounts keys create /tmp/key.json --iam-account=$TERRAFORM_SA 
 gcloud projects add-iam-policy-binding $TAG_ENGINE_PROJECT --member=serviceAccount:${TERRAFORM_SA} --role=roles/owner
 gcloud projects add-iam-policy-binding $BQ_PROJECT --member=serviceAccount:${TERRAFORM_SA} --role=roles/owner
 gcloud auth activate-service-account $TERRAFORM_SA --key-file=/tmp/key.json
+export GOOGLE_APPLICATION_CREDENTIALS=/tmp/key.json
 ```
 
 #### Step 7: Run the Terraform scripts:

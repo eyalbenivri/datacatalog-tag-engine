@@ -24,39 +24,42 @@
 			 <br><br>&nbsp;&nbsp;Enter the Pub/Sub details for your tag stream settings. Tag Engine will not create the Pub/Sub topic or subscription, you must create those outside of Tag Engine before proceeding. 
 			 <br><br>&nbsp;&nbsp;Mandatory settings are marked by <span style="color:red;">*</span>
 		   </h6>
-	   </span> 
-         <form method="post" action="/set_tag_stream">
-		   
-		   <table>
-			   <tr><td><span style="color:red;">*</span>&nbsp;Enable Tag Stream:</td>
-				   <td>&nbsp;<select name="enabled" style="width: 80px;">`
-						   {% if enabled %}
-						   	<option value="on" selected>ON</option>
-							<option value="off">OFF</option>
-						   {% else %}
-							<option value="off" selected>OFF</option>
-							<option value="on">ON</option>
-						   {% endif %}
-						   </select>
-			    	  </td>
-		    </tr>
-	    
-		        <tr>
-		          <td><span style="color:red;">*</span>&nbsp;Pub/Sub Project Id:</td>
-		          <td>&nbsp;<input type="text" name="project_id" value="{{ project_id }}" style="width: 150px;padding: 3px;"></td>
-			   </tr>
-		        <tr>
-		          <td><span style="color:red;">*</span>&nbsp;Pub/Sub Topic:</td>
-		          <td>&nbsp;<input type="text" name="topic" value="{{ topic }}" style="width: 150px;padding: 3px;"></td>
-			   </tr>
-			   <tr>
-			   <td></td>
-			    <td>&nbsp;<input type="submit" value="Save Settings" name="submit" style="width: 160px;padding: 3px;"></td> 
-			     
-			  </tr>
-		    </table>
-           
-         </form>
+	   </span>
+        {%  for enabled, settings, group in groups_with_tag_stream %}
+            <h3>Settings for Group {{ group['data_domain'] }}</h3>
+             <form method="post" action="/set_tag_stream">
+               <input type="hidden" name="group_key" value="{{ group['group_key'] }}" />
+               <table>
+                   <tr><td><span style="color:red;">*</span>&nbsp;Enable Tag Stream:</td>
+                       <td>&nbsp;<select name="enabled" style="width: 80px;">`
+                               {% if enabled %}
+                                <option value="on" selected>ON</option>
+                                <option value="off">OFF</option>
+                               {% else %}
+                                <option value="off" selected>OFF</option>
+                                <option value="on">ON</option>
+                               {% endif %}
+                               </select>
+                          </td>
+                </tr>
+
+                    <tr>
+                      <td><span style="color:red;">*</span>&nbsp;Pub/Sub Project Id:</td>
+                      <td>&nbsp;<input type="text" name="project_id" value="{{ settings.get('project_id', '') }}" placeholder="{your_project_id}" style="width: 150px;padding: 3px;"></td>
+                   </tr>
+                    <tr>
+                      <td><span style="color:red;">*</span>&nbsp;Pub/Sub Topic:</td>
+                      <td>&nbsp;<input type="text" name="topic" value="{{ settings.get('topic', '') }}" placeholder="{your_topic}" style="width: 150px;padding: 3px;"></td>
+                   </tr>
+                   <tr>
+                   <td></td>
+                    <td>&nbsp;<input type="submit" value="Save Settings for Group {{ group['data_domains'] }}" name="submit" style="width: 160px;padding: 3px;"></td>
+
+                  </tr>
+                </table>
+
+             </form>
+        {% endfor %}
 	    <p>&nbsp;&nbsp;<a href="/">Homepage</a></p>
     </body>
 </html>

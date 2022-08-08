@@ -12,52 +12,43 @@
   </div>  
     <body>
 	  <table>
-	 {% for project in project_ids.split(",") %}
-      	<tr><td>
-      	<h4>&nbsp;&nbsp;Project {{ project }}</h4>
-          </td></tr>
-	    {% for header in report_headers: %}
-	      {% set project_dataset, total_tags = header %}
-		 {% set current_project = project_dataset.split('.')[0] %}
-		 {% set current_dataset = project_dataset.split('.')[1] %}
-		 {% if current_project in project: %}
-		    <tr><td style="text-align:left"><b>&nbsp;&nbsp;Dataset {{ current_dataset }} - {{ total_tags }} tags</b></td></tr>
-		   
-			   {% for dataset_record in report_data: %}
-			      {% for dataset, tables in dataset_record.items(): %}
-			        {% if project_dataset in dataset: %}
-			           {% for table in tables: %}
-					   {% set table_name = table.0 %}
-					   {% set tag_count = table.1 %}
-					   {% set res = project_dataset + "." + table_name %}
-				        <tr>
+	 {% for group_report_entry in report %}
+         <tr><td><h3>Group {{ group_report_entry["group"]["data_domain"] }}</h3></td></tr>
+         {% if group_report_entry["exists"] %}
+             {% for project_id, project_report in group_report_entry["project_reports"].items() %}
+                <tr><td><h4>&nbsp;&nbsp;Project {{ project_id }}</h4></td></tr>
+                 {% for dataset_id, dataset_report in project_report["datasets"].items() %}
+                     <tr><td style="text-align:left"><b>&nbsp;&nbsp;Dataset {{ dataset_id }} - {{ dataset_report["overall_sum"] }} tags</b></td></tr>
+                     {% for table_id, table_report in dataset_report["tables"].items() %}
+                         {% set res = project_id + "." + dataset_id + "." + table_report["table_path_short"] %}
+                         <tr>
 				          <td style="text-align:left">&nbsp;&nbsp;
-						{% if tag_count > 0 %}	
-							<a href="{{ url_for('coverage_details', res=res) }}">{{ table_name }}</a>
+						{% if table_report["tag_count"] > 0 %}
+							<a href="{{ url_for('coverage_details', res=res) }}">{{ table_report["table_path_short"] }}</a>
 						{% else %}
-							{{ table_name }}
+							{{ table_report["table_path_short"] }}
 						{% endif %}
 				          </td>
 						<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
 				          <td>
-							{% if tag_count == 0 %}
-							<td style="background-color:red">&nbsp;&nbsp;{{ tag_count }} tags
-							{% elif tag_count == 1 %}
-							<td style="background-color:yellow">&nbsp;&nbsp;{{ tag_count }} tag
+							{% if table_report["tag_count"] == 0 %}
+							<td style="background-color:red">&nbsp;&nbsp;{{ table_report["tag_count"] }} tags
+							{% elif table_report["tag_count"] == 1 %}
+							<td style="background-color:yellow">&nbsp;&nbsp;{{ table_report["tag_count"] }} tag
 							{% elif tag_count == 2 %}
-							<td style="background-color:lightgreen">&nbsp;&nbsp;{{ tag_count }} tags
+							<td style="background-color:lightgreen">&nbsp;&nbsp;{{ table_report["tag_count"] }} tags
 							{% else %}
-							<td style="background-color:green">&nbsp;&nbsp;{{ tag_count }} tags
+							<td style="background-color:green">&nbsp;&nbsp;{{ table_report["tag_count"] }} tags
 							{% endif %}
 							&nbsp;&nbsp;</td>
 					    </tr>
-					{% endfor %}
-				  {% endif %}
-				{% endfor %}
-			   {% endfor %}
-		    
-		     {% endif %}
-		   {% endfor %}
+                     {% endfor %}
+                 {% endfor %}
+             {% endfor %}
+         {%  else %}
+             <tr><td>Report not enabled for group.</td></tr>
+         {% endif %}
+
 		   <tr><td>&nbsp;</td></tr>
 		{% endfor %}
 		</table>

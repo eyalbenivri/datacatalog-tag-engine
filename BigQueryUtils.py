@@ -39,11 +39,11 @@ class BigQueryUtils:
         store = te.TagEngineUtils()
         enabled, settings = store.read_tag_history_settings()
         
-        if enabled == False:
+        if not enabled:
             return enabled, settings
         
         project_id = settings['project_id']
-        region = settings['region']
+        region = settings['region']  # Note: Do we need this - this seems to be unused.
         dataset = settings['dataset']
         
         dataset_id = self.client.dataset(dataset, project=project_id)

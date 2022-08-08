@@ -37,6 +37,7 @@
  		    </h5>
  	  </span>
          <form method="post" action="/process_dynamic_config">
+            <input type="hidden" name="group" value="{{ group['group_key'] }}" />
 		    <table>
 			   {% for dict_field in fields %}
 		        <tr>
