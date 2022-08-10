@@ -17,6 +17,8 @@ import os
 from typing import List, Optional
 
 import googleapiclient.discovery
+from google.auth import iam
+from google.auth.transport import requests
 from google.oauth2 import service_account
 
 SCOPES = [
@@ -27,6 +29,8 @@ SCOPES = [
     "https://www.googleapis.com/auth/admin.directory.user.readonly",
     "https://www.googleapis.com/auth/admin.directory.group.member.readonly",
 ]
+TOKEN_URI = 'https://accounts.google.com/o/oauth2/token'
+
 
 
 class UserUtils:
@@ -37,7 +41,11 @@ class UserUtils:
         if not data_domain:
             data_domain = []
         else:
-            list_response = self.service.groups().list(domain=domain).execute()
+            try:
+                list_response = self.service.groups().list(domain=domain).execute()
+            except Exception as e:
+                logging.error(f"Unknown error while calling groups list method. {e}")
+                raise
             data_domain = [(group["name"], group["email"], group["id"]) for group in list_response.get("groups", [])
                            if group["email"] in data_domain]
             # save 2 dicts of data domains to pair and groups to pair.
@@ -50,7 +58,7 @@ class UserUtils:
         try:
             delegated_credentials = self.get_credentials(delegated_email)
         except Exception as e:
-            print(e)
+            logging.error(f"Error getting the credentials; {e}")
             raise e
         service = googleapiclient.discovery.build(service_name, api_version, credentials=delegated_credentials)
         logging.info(f"Constructed service {service_name} {api_version}")
@@ -81,17 +89,39 @@ class UserUtils:
 
     @staticmethod
     def get_credentials(delegated_email: Optional[str]):
-        if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
-            credentials = service_account.Credentials.from_service_account_file(
-                os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"), scopes=SCOPES)
-            logging.info(f"Got credentials from env variable")
-        else:
-            import google.auth
-            credentials, project_id = google.auth.default()
-            logging.info(f"Got credentials from default env")
+        # if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+        #     credentials = service_account.Credentials.from_service_account_file(
+        #         os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"), scopes=SCOPES)
+        #     logging.info(f"Got credentials from env variable")
+        # else:
+        import google.auth
+        credentials, project_id = google.auth.default()
         if delegated_email:
-            delegated_credentials = credentials.with_subject(delegated_email.replace("accounts.google.com:", ""))
-            return delegated_credentials
+            subject = delegated_email.replace("accounts.google.com:", "")
+            try:
+                admin_creds = credentials.with_subject(subject).with_scopes(SCOPES)
+                logging.info(
+                    f"Created credentials direct; email {credentials.service_account_email}; subject {subject}")
+            except AttributeError:  # Looks like a compute creds object
+                # Refresh the boostrap credentials. This ensures that the information
+                # about this account, notably the email, is populated.
+                request = requests.Request()
+                credentials.refresh(request)
+
+                # Create an IAM signer using the bootstrap credentials.
+                signer = iam.Signer(request, credentials,
+                                    credentials.service_account_email)
+                # Create OAuth 2.0 Service Account credentials using the IAM-based
+                # signer and the bootstrap_credential's service account email.
+                admin_creds = service_account.Credentials(
+                    signer, credentials.service_account_email, TOKEN_URI,
+                    scopes=SCOPES, subject=subject, project_id=project_id)
+                logging.info(f"Created credentials using workaround; signer {signer}; email {credentials.service_account_email}; subject {subject}")
+            except Exception as e:
+                logging.exception(e)
+                raise
+
+            return admin_creds
         return credentials
 
 

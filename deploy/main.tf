@@ -64,6 +64,14 @@ resource "google_project_iam_member" "data_catalog_viewer_binding" {
   depends_on = [google_project_service.bigquery_project]
 }
 
+resource "google_project_iam_member" "iam_token_creator_binding" {
+  project = var.tag_engine_project
+  role    = "roles/iam.serviceAccountTokenCreator"
+  member  = "serviceAccount:${var.tag_engine_project}@appspot.gserviceaccount.com"
+
+  depends_on = [google_project_service.tag_engine_project]
+}
+
 # Cloud task queues
 resource "google_cloud_tasks_queue" "injector_queue" {
   name = "tag-engine-injector-queue"

@@ -60,6 +60,7 @@ logging.config.dictConfig(
 )
 
 app = Flask(__name__)
+app.secret_key = config["DEFAULT"].get("APP_SECRET_KEY")
 teu = te.TagEngineUtils()
 
 data_domains = list(map(lambda x: x.strip(), config["DEFAULT"].get("DATA_DOMAINS", "").split(",")))
@@ -89,7 +90,7 @@ def get_groups():
     """
     if not session.get("groups") or not session.get("user_id"):
         user_id = request.headers.get("X-Goog-Authenticated-User-Id")
-        if user_id and not session["user_id"]:
+        if user_id and not session.get("user_id"):
             session["user_id"] = user_id
             session["user_email"] = request.headers.get("X-Goog-Authenticated-User-Email")
             session["user_jwt_assertion"] = request.headers.get("X-Goog-Iap-Jwt-Assertion")

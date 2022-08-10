@@ -10,3 +10,4 @@ pytz
 pandas
 pyarrow
 jsonlines
+google-api-python-client
