@@ -116,7 +116,7 @@ class UserUtils:
                 admin_creds = service_account.Credentials(
                     signer, credentials.service_account_email, TOKEN_URI,
                     scopes=SCOPES, subject=subject, project_id=project_id)
-                logging.info(f"Created credentials using workaround; signer {signer}; email {credentials.service_account_email}; subject {subject}")
+                # logging.info(f"Created credentials using workaround; signer {signer}; email {credentials.service_account_email}; subject {subject}")
             except Exception as e:
                 logging.exception(e)
                 raise

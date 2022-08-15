@@ -18,6 +18,7 @@ from datetime import time as dtime
 import pytz
 from operator import itemgetter
 import pandas as pd
+from google.api_core.exceptions import PermissionDenied
 from pyarrow import parquet
 import json
 import os
@@ -53,8 +54,10 @@ class DataCatalogUtils:
     def get_template(self, included_fields=None):
         
         fields = []
-        
-        tag_template = self.client.get_tag_template(name=self.template_path)
+        try:
+            tag_template = self.client.get_tag_template(name=self.template_path)
+        except PermissionDenied as permissionDenied:
+            raise PermissionError(f"{self.template_path} was either not found or you do not have the permissions to access it.")
         
         for field_id, field_value in tag_template.fields.items():
             

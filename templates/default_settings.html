@@ -39,8 +39,8 @@
                 <tr>
                     <td><label for="group">Owning group:</label></td>
 		          <td>
-                      <select id="group" name="group" style="width: 150px;padding: 3px;" {% if groups|length < 2%}disabled{% endif %}>
-                        <option {% if not group %}selected{% endif %} value="">No Default</option>
+                      <select id="group" name="group" style="width: 150px;padding: 3px;" {% if groups|length < 2%}readonly{% endif %}>
+                        {% if group|length > 1 %}<option {% if not group %}selected{% endif %} value="">No Default</option>{% endif %}
                         {% for g in groups %}
                           <option {% if g['group_key']==group['group_key'] %}selected{% endif %} value="{{ g['group_key'] }}">{{ g['data_domain'] }}</option>
                         {% endfor %}

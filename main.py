@@ -208,14 +208,13 @@ def set_default():
     project_id = request.form['project_id'].rstrip()
     region = request.form['region'].rstrip()
     group = get_group_from_group_key(request.form['group'].rstrip(), session['groups'])
-
+    logging.info(f"Got set_default values: {request.form}")
     if template_id == "":
         template_id = None
     if project_id == "":
         project_id = None
     if region == "":
         region = None
-    group = get_group_from_group_key(group["group_key"], session["groups"])
     if group is not None or template_id is not None or project_id is not None or region is not None:
         teu.write_default_settings(session["user_id"], template_id, project_id, region, group)
 
@@ -355,7 +354,11 @@ def search_template():
     group = next(group for group in session["groups"] if group["group_key"] == group_key)
 
     dcu = dc.DataCatalogUtils(session["user_email"], template_id, project_id, region)
-    fields = dcu.get_template()
+    try:
+        fields = dcu.get_template()
+    except PermissionError as pe:
+        return render_template("error.html",
+                                message=str(pe))
 
     #print("fields: " + str(fields))
     # [END search_template]
