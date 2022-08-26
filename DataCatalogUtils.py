@@ -576,7 +576,7 @@ class DataCatalogUtils:
         
         entry_group = self.client.create_entry_group(
                     parent='projects/' + self.project_id + '/locations/' + self.region,
-                    entry_group_id=entry_group_short_name,
+                    entry_group_key=entry_group_short_name,
                     entry_group=eg)
         
         print('created entry_group: ', entry_group.name)

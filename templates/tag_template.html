@@ -15,7 +15,7 @@
 		   <h5>&nbsp;&nbsp;Mandatory tag template fields are marked by <span style="color:red;">*</span></h5>
 	   </span>
          <form method="post" action="/display_selected_action">
-            <input type="hidden" name="group" value="{{ group['group_key'] }}" />
+            <input type="hidden" name="group_key" value="{{ group['group_key'] }}" />
 		    <table>
 			   {% for field in fields %}
 		        <tr>
