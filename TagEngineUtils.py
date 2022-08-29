@@ -68,8 +68,8 @@ class TagEngineUtils:
     # region supporting per-group settings
 
     @staticmethod
-    def __get_key_for_group__(perf: str, group: dict):
-        return f'{perf}_{group["group_key"]}'
+    def __get_key_for_group__(perf: str, group: str):
+        return f'{perf}_{group}'
 
     @staticmethod
     def __map_groups_to_per_group_settings__(method: Callable[[dict], Tuple[bool, dict]], groups: List[dict]) -> \
@@ -99,15 +99,15 @@ class TagEngineUtils:
     def read_tag_history_settings_for_groups(self, groups: List[dict]) -> List[Tuple[bool, dict, dict]]:
         return self.__map_groups_to_per_group_settings__(self.read_tag_history_settings, groups)
 
-    def write_tag_history_settings(self, group, user_id, enabled, project_id, region, dataset):
+    def write_tag_history_settings(self, group_key, user_id, enabled, project_id, region, dataset):
         history_settings = self.db.collection('settings')
-        doc_ref = history_settings.document(self.__get_key_for_group__('tag_history', group))
+        doc_ref = history_settings.document(self.__get_key_for_group__('tag_history', group_key))
         doc_ref.set({
             'enabled': bool(enabled),
             'project_id': project_id,
             'region': region,
             'dataset': dataset,
-            'group': group,
+            'group_key': group_key,
             'user_id': user_id,
         })
 
@@ -126,14 +126,14 @@ class TagEngineUtils:
     def read_tag_stream_settings(self, group: dict):
         return self.__read_settings_by_group__('tag_stream', group)
 
-    def write_tag_stream_settings(self, group: dict, user_id, enabled, project_id, topic):
+    def write_tag_stream_settings(self, group_key: str, user_id, enabled, project_id, topic):
         history_settings = self.db.collection('settings')
-        doc_ref = history_settings.document(self.__get_key_for_group__('tag_stream', group))
+        doc_ref = history_settings.document(self.__get_key_for_group__('tag_stream', group_key))
         doc_ref.set({
             'enabled': bool(enabled),
             'project_id': project_id,
             'topic': topic,
-            'group': group,
+            'group_key': group_key,
             'user_id': user_id,
         })
         print('Saved tag stream settings.')

@@ -256,7 +256,7 @@ def set_tag_history():
     # TODO: Use method
     group = next(group for group in session["groups"] if group["group_key"] == group_key)
     if group is not None and (project_id is not None or region is not None or dataset is not None):
-        teu.write_tag_history_settings(group, session["user_id"], enabled, project_id, region, dataset)
+        teu.write_tag_history_settings(group['group_key'], session["user_id"], enabled, project_id, region, dataset)
 
         return tag_history_settings(1)
     else:
@@ -291,7 +291,7 @@ def set_tag_stream():
     # TODO: User method
     group = next(group for group in session["groups"] if group["group_key"] == group_key)
     if group is not None and (project_id is not None or topic is not None):
-        teu.write_tag_stream_settings(group, session["user_id"], enabled, project_id, topic)
+        teu.write_tag_stream_settings(group['group_key'], session["user_id"], enabled, project_id, topic)
 
         return tag_stream_settings(1)
     else:
