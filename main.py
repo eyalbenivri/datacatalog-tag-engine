@@ -2670,35 +2670,33 @@ def _run_task():
         dcu = dc.DataCatalogUtils(tem_config['template_id'], tem_config['project_id'], tem_config['region'])
 
     if config_type == 'DYNAMIC':
-        creation_status = dcu.apply_dynamic_config(config['fields'], uri, config['config_uuid'], \
-                                                   config['template_uuid'], config['tag_history'], \
+        creation_status = dcu.apply_dynamic_config(config['fields'], uri, config['config_uuid'],
+                                                   config['template_uuid'], config['tag_history'],
                                                    config['tag_stream'])
     if config_type == 'STATIC':
-        creation_status = dcu.apply_static_config(config['fields'], uri, config['config_uuid'], \
-                                                  config['template_uuid'], config['tag_history'], \
+        creation_status = dcu.apply_static_config(config['fields'], uri, config['config_uuid'],
+                                                  config['template_uuid'], config['tag_history'],
                                                   config['tag_stream'], config['overwrite'])
     if config_type == 'ENTRY':
-        creation_status = dcu.apply_entry_config(config['fields'], uri, config['config_uuid'], \
-                                                 config['template_uuid'], config['tag_history'], \
+        creation_status = dcu.apply_entry_config(config['fields'], uri, config['config_uuid'], config['template_uuid'],
+                                                 config['tag_history'],
                                                  config['tag_stream'])
     if config_type == 'GLOSSARY':
         creation_status = dcu.apply_glossary_config(config['fields'], config['mapping_table'], uri,
-                                                    config['config_uuid'], \
-                                                    config['template_uuid'], config['tag_history'], \
-                                                    config['tag_stream'], config['overwrite'])
+                                                    config['config_uuid'], config['template_uuid'],
+                                                    config['tag_history'], config['tag_stream'], config['overwrite'])
     if config_type == 'SENSITIVE':
-        creation_status = dcu.apply_sensitive_config(config['fields'], config['dlp_dataset'], config['mapping_table'], \
+        creation_status = dcu.apply_sensitive_config(config['fields'], config['dlp_dataset'], config['mapping_table'],
                                                      uri, config['create_policy_tags'], config['taxonomy_id'],
-                                                     config['config_uuid'], \
-                                                     config['template_uuid'], config['tag_history'], \
-                                                     config['tag_stream'], config['overwrite'])
+                                                     config['config_uuid'], config['template_uuid'],
+                                                     config['tag_history'], config['tag_stream'], config['overwrite'])
     if config_type == 'RESTORE':
-        creation_status = dcu.apply_restore_config(config['config_uuid'], tag_extract, \
-                                                   config['tag_history'], config['tag_stream'], config['overwrite'])
+        creation_status = dcu.apply_restore_config(config['config_uuid'], tag_extract, config['tag_history'],
+                                                   config['tag_stream'], config['overwrite'])
 
     if config_type == 'IMPORT':
-        creation_status = dcu.apply_import_config(config['config_uuid'], tag_extract, \
-                                                  config['tag_history'], config['tag_stream'], config['overwrite'])
+        creation_status = dcu.apply_import_config(config['config_uuid'], tag_extract, config['tag_history'],
+                                                  config['tag_stream'], config['overwrite'])
 
     if creation_status == constants.SUCCESS:
         tm.update_task_status(shard_uuid, task_uuid, 'COMPLETED')
