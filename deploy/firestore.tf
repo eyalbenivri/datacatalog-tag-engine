@@ -363,6 +363,11 @@ resource "google_firestore_index" "index-14" {
       order      = "ASCENDING"
     }
 
+  fields {
+    field_path = "group_key"
+    order      = "ASCENDING"
+  }
+
   depends_on = [google_firestore_index.index-13]
 }
 
@@ -380,6 +385,11 @@ resource "google_firestore_index" "index-15" {
       field_path = "config_status"
       order      = "ASCENDING"
     }
+
+  fields {
+    field_path = "group_key"
+    order      = "ASCENDING"
+  }
 
   depends_on = [google_firestore_index.index-14]
 }
@@ -399,6 +409,11 @@ resource "google_firestore_index" "index-16" {
       order      = "ASCENDING"
     }
 
+  fields {
+    field_path = "group_key"
+    order      = "ASCENDING"
+  }
+
   depends_on = [google_firestore_index.index-15]
 }
 
@@ -416,6 +431,11 @@ resource "google_firestore_index" "index-17" {
       field_path = "config_status"
       order      = "ASCENDING"
     }
+
+  fields {
+    field_path = "group_key"
+    order      = "ASCENDING"
+  }
 
   depends_on = [google_firestore_index.index-16]
 }
@@ -435,6 +455,11 @@ resource "google_firestore_index" "index-18" {
       order      = "ASCENDING"
     }
 
+  fields {
+    field_path = "group_key"
+    order      = "ASCENDING"
+  }
+
   depends_on = [google_firestore_index.index-17]
 }
 
@@ -452,6 +477,11 @@ resource "google_firestore_index" "index-19" {
       field_path = "config_status"
       order      = "ASCENDING"
     }
+
+  fields {
+    field_path = "group_key"
+    order      = "ASCENDING"
+  }
 
   depends_on = [google_firestore_index.index-18]
 }
@@ -476,6 +506,11 @@ resource "google_firestore_index" "index-20" {
       order      = "ASCENDING"
     }
 
+  fields {
+    field_path = "group_key"
+    order      = "ASCENDING"
+  }
+
   depends_on = [google_firestore_index.index-19]
 }
 
@@ -493,6 +528,11 @@ resource "google_firestore_index" "index-21" {
       field_path = "config_status"
       order      = "ASCENDING"
     }
+
+  fields {
+    field_path = "group_key"
+    order      = "ASCENDING"
+  }
 
   depends_on = [google_firestore_index.index-20]
 }

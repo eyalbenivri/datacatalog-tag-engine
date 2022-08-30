@@ -121,7 +121,7 @@ def homepage():
         template_id = settings['template_id']
         project_id = settings['project_id']
         region = settings['region']
-        group = settings['group']
+        group = get_group_from_group_key(settings['group_key'], session['groups'])
     else:
         template_id = ""
         project_id = ""
@@ -455,7 +455,7 @@ def display_selected_action():
 
     if action == "View and Edit Configs":
 
-        configs = teu.read_configs(template_id, project_id, region)
+        configs = teu.read_configs(group['group_key'], template_id, project_id, region)
 
         print('configs: ', configs)
 
@@ -678,6 +678,7 @@ def process_update_static_config():
     refresh_frequency = request.form['refresh_frequency'].rstrip()
     refresh_unit = request.form['refresh_unit']
     action = request.form['action']
+    group = get_group_from_group_key(request.form['group_key'], session['groups'])
     overwrite = True  # this option overwrites existing tags
 
     job_creation = constants.SUCCESS
@@ -737,8 +738,8 @@ def process_update_static_config():
             if tag_stream_option == "selected":
                 tag_stream = True
 
-        template_exists, template_uuid = teu.read_tag_template(template_id, project_id, region)
-        new_config_uuid = teu.update_config(old_config_uuid, 'STATIC', 'PENDING', fields, included_uris, excluded_uris, \
+        template_exists, template_uuid = teu.read_tag_template(template_id, project_id, region, group['group_key'])
+        new_config_uuid = teu.update_config(old_config_uuid, 'STATIC', 'PENDING', fields, included_uris, excluded_uris,
                                             template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history,
                                             tag_stream, overwrite)
 
@@ -753,7 +754,7 @@ def process_update_static_config():
             job_creation = constants.ERROR
 
     template_fields = dcu.get_template()
-    configs = teu.read_configs(template_id, project_id, region)
+    configs = teu.read_configs(group['group_key'], template_id, project_id, region)
 
     # print('template_fields: ' + str(template_fields))
 

@@ -80,11 +80,14 @@ class TagEngineUtils:
         settings = {}
         enabled = False
 
-        doc_ref = self.db.collection('settings').document(self.__get_key_for_group__(pref, group))
+        doc_ref = self.db.collection('settings').document(self.__get_key_for_group__(pref, group['group_key']))
         doc = doc_ref.get()
 
         if doc.exists:
             settings = doc.to_dict()
+            if settings['group_key']:
+                assert settings['group_key'] == group['group_key']
+                settings['group'] = group
 
             # Some entities need an enabled flag - and some entities just want to know if the document exists.
             # This trick will read either the property or the True value passed for that behaviour.
@@ -151,7 +154,7 @@ class TagEngineUtils:
             'project_ids': project_ids,
             'excluded_datasets': datasets,
             'excluded_tables': tables,
-            'group': group,
+            'group_key': group['group_key'],
             'user_id': user_id,
         })
 
@@ -973,7 +976,7 @@ class TagEngineUtils:
         else:
             colls.append(self.get_config_collection(config_type))
 
-        template_exists, template_uuid = self.read_tag_template(template_id, project_id, region)
+        template_exists, template_uuid = self.read_tag_template(template_id, project_id, region, group_key)
 
         for coll_name in colls:
             configs_ref = self.db.collection(coll_name)
