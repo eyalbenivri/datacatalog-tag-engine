@@ -464,6 +464,7 @@ def display_selected_action():
             template_id=template_id,
             project_id=project_id,
             region=region,
+            group=group,
             configs=configs)
 
     elif action == "Create Static Config":
