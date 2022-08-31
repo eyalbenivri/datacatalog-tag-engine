@@ -865,7 +865,8 @@ class TagEngineUtils:
 
         return config_uuid
 
-    def write_import_config(self, group_key, config_status, template_uuid, template_id, template_project, template_region,
+    def write_import_config(self, group_key, config_status, template_uuid, template_id, template_project,
+                            template_region,
                             metadata_import_location, tag_history, tag_stream, overwrite=False):
 
         print('** write_import_config **')
@@ -1072,7 +1073,8 @@ class TagEngineUtils:
 
         return success, config_result
 
-    def update_config(self, group_key, old_config_uuid, config_type, config_status, fields, included_uris, excluded_uris,
+    def update_config(self, group_key, old_config_uuid, config_type, config_status, fields, included_uris,
+                      excluded_uris,
                       template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream,
                       overwrite=False, mapping_table=None):
 
@@ -1094,7 +1096,8 @@ class TagEngineUtils:
                                                                             refresh_mode, refresh_frequency,
                                                                             refresh_unit, tag_history, tag_stream)
         if config_type == 'ENTRY':
-            new_config_uuid, included_uris_hash = self.write_entry_config(group_key, config_status, fields, included_uris,
+            new_config_uuid, included_uris_hash = self.write_entry_config(group_key, config_status, fields,
+                                                                          included_uris,
                                                                           excluded_uris, template_uuid, refresh_mode,
                                                                           refresh_frequency, refresh_unit, tag_history,
                                                                           tag_stream)
@@ -1109,7 +1112,8 @@ class TagEngineUtils:
 
         return new_config_uuid
 
-    def update_sensitive_config(self, old_config_uuid, config_status, dlp_dataset, mapping_table, included_uris,
+    def update_sensitive_config(self, group_key, old_config_uuid, config_status, dlp_dataset, mapping_table,
+                                included_uris,
                                 excluded_uris,
                                 create_policy_tags, taxonomy_id, template_uuid, refresh_mode, refresh_frequency,
                                 refresh_unit,
@@ -1121,16 +1125,16 @@ class TagEngineUtils:
 
         config = self.read_config(old_config_uuid, 'SENSITIVE')
 
-        new_config_uuid, included_uris_hash = self.write_sensitive_config(config_status, config['fields'], dlp_dataset,
-                                                                          mapping_table, included_uris, excluded_uris, \
-                                                                          create_policy_tags, taxonomy_id,
-                                                                          template_uuid, \
-                                                                          refresh_mode, refresh_frequency, refresh_unit,
-                                                                          tag_history, tag_stream, overwrite)
+        new_config_uuid, included_uris_hash = self.write_sensitive_config(group_key, config_status, config['fields'],
+                                                                          dlp_dataset, mapping_table, included_uris,
+                                                                          excluded_uris, create_policy_tags,
+                                                                          taxonomy_id, template_uuid, refresh_mode,
+                                                                          refresh_frequency, refresh_unit, tag_history,
+                                                                          tag_stream, overwrite)
 
         return new_config_uuid
 
-    def update_restore_config(self, old_config_uuid, config_status, source_template_uuid, source_template_id,
+    def update_restore_config(self, group_key, old_config_uuid, config_status, source_template_uuid, source_template_id,
                               source_template_project,
                               source_template_region, target_template_uuid, target_template_id, target_template_project, \
                               target_template_region, metadata_export_location, tag_history, tag_stream,
@@ -1140,11 +1144,11 @@ class TagEngineUtils:
             'config_status': "INACTIVE"
         })
 
-        new_config_uuid = self.write_restore_config(config_status, source_template_uuid, source_template_id,
-                                                    source_template_project, \
-                                                    source_template_region, target_template_uuid, target_template_id, \
-                                                    target_template_project, target_template_region, \
-                                                    metadata_export_location, tag_history, tag_stream, overwrite=False)
+        new_config_uuid = self.write_restore_config(group_key, config_status, source_template_uuid, source_template_id,
+                                                    source_template_project, source_template_region,
+                                                    target_template_uuid, target_template_id, target_template_project,
+                                                    target_template_region, metadata_export_location, tag_history,
+                                                    tag_stream, overwrite=False) # the overwrite bit feels like a bug
 
         return new_config_uuid
 
