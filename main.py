@@ -317,7 +317,7 @@ def set_coverage():
         tables = None
     group = next(group for group in session["groups"] if group["group_key"] == group_key)
     if group is not None and (project_ids is not None or datasets is not None or tables is not None):
-        teu.write_coverage_settings(group, session["user_id"], project_ids, datasets, tables)
+        teu.write_coverage_settings(group['group_key'], session["user_id"], project_ids, datasets, tables)
 
     return coverage_settings(1)
 

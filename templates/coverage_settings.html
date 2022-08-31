@@ -29,16 +29,16 @@
             <input type="hidden" name="group_key" value="{{ group['group_key'] }}" />
 		    <table>
 		        <tr>
-		          <td><span style="color:red;">*</span> BigQuery Project Ids:</td>
-		          <td>&nbsp;<input type="text" name="project_ids" value="{{ coverage_settings.get('project_ids', '') }}" placeholder="{projectA}, {projectB}, {projectC}" style="width: 500px;padding: 3px;"></td>
+                    <td><span style="color:red;">*</span> <label for="project_ids">BigQuery Project Ids:</label></td>
+		          <td>&nbsp;<input type="text" id="project_ids" name="project_ids" value="{{ coverage_settings.get('project_ids') or '' }}" placeholder="{projectA}, {projectB}, {projectC}" style="width: 500px;padding: 3px;"></td>
 			   </tr>
 		        <tr>
-		          <td>&nbsp;&nbsp;Exclude Datasets:</td>
-		          <td>&nbsp;<input type="text" name="datasets" value="{{ coverage_settings.get('datasets', '') }}" placeholder="{project.dataset1}, {project.dataset2}, {project.dataset3}" style="width: 500px;padding: 3px;"></td>
+                    <td>&nbsp;&nbsp;<label for="datasets">Exclude Datasets:</label></td>
+		          <td>&nbsp;<input type="text" id="datasets" name="datasets" value="{{ coverage_settings.get('datasets') or '' }}" placeholder="{project.dataset1}, {project.dataset2}, {project.dataset3}" style="width: 500px;padding: 3px;"></td>
 			   </tr>
 		        <tr>
-		          <td>&nbsp;&nbsp;Exclude Tables/Views:</td>
-		          <td>&nbsp;<input type="text" name="tables" value="{{ coverage_settings.get('tables', '') }}" placeholder="{project.dataset.table1}, {project.dataset.table2}, {project.dataset.view3}" style="width: 500px;padding: 3px;"></td>
+                    <td>&nbsp;&nbsp;<label for="tables">Exclude Tables/Views:</label></td>
+		          <td>&nbsp;<input type="text" id="tables" name="tables" value="{{ coverage_settings.get('tables') or '' }}" placeholder="{project.dataset.table1}, {project.dataset.table2}, {project.dataset.view3}" style="width: 500px;padding: 3px;"></td>
 			   </tr>
 			    <td></td>
 			    <td>&nbsp;<input type="submit" value="Save" name="submit" style="width: 148px;padding: 3px;"></td>

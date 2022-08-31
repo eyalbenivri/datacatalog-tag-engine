@@ -16,7 +16,13 @@
          <tr><td><h3>Group {{ group_report_entry["group"]["data_domain"] }}</h3></td></tr>
          {% if group_report_entry["exists"] %}
              {% for project_id, project_report in group_report_entry["project_reports"].items() %}
-                <tr><td><h4>&nbsp;&nbsp;Project {{ project_id }}</h4></td></tr>
+                <tr><td>
+                    <h4>&nbsp;&nbsp;Project {{ project_id }}</h4>
+                    {% if project_report['error'] %}
+                 <h5 color="red">Error: {{ project_report['error'] }}</h5>
+                 {% endif %}
+                </td></tr>
+
                  {% for dataset_id, dataset_report in project_report["datasets"].items() %}
                      <tr><td style="text-align:left"><b>&nbsp;&nbsp;Dataset {{ dataset_id }} - {{ dataset_report["overall_sum"] }} tags</b></td></tr>
                      {% for table_id, table_report in dataset_report["tables"].items() %}

@@ -18,6 +18,8 @@ from datetime import datetime
 from datetime import timedelta
 from typing import List, Dict, Callable, Tuple
 
+import google.api_core.exceptions
+
 import DataCatalogUtils as dc
 import BigQueryUtils as bq
 from google.cloud import bigquery
@@ -147,14 +149,14 @@ class TagEngineUtils:
     def read_coverage_settings(self, group: dict):
         return self.__read_settings_by_group__('coverage', group, enabled_on_exists=True)
 
-    def write_coverage_settings(self, group: dict, user_id, project_ids, datasets, tables):
+    def write_coverage_settings(self, group_key: str, user_id, project_ids, datasets, tables):
         report_settings = self.db.collection('settings')
         doc_ref = report_settings.document(self.__get_key_for_group__('coverage', group))
         doc_ref.set({
             'project_ids': project_ids,
             'excluded_datasets': datasets,
             'excluded_tables': tables,
-            'group_key': group['group_key'],
+            'group_key': group_key,
             'user_id': user_id,
         })
 
@@ -183,7 +185,14 @@ class TagEngineUtils:
                     project_id = project.strip()
                     group_report_entry["project_reports"][project_id] = {"project_id": project_id, "datasets": {}}
                     bq_client = bigquery.Client(project=project_id)
-                    datasets = list(bq_client.list_datasets())
+                    try:
+                        datasets = list(bq_client.list_datasets())
+                    except google.api_core.exceptions.BadRequest as br:
+                        group_report_entry["project_reports"][project_id]['error'] = br.errors[0]['message']
+                        continue
+                    except Exception as e:
+                        group_report_entry["project_reports"][project_id]['error'] = str(e)
+                        continue
 
                     # Note: What is this used for?
                     total_tags = 0
