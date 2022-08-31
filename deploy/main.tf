@@ -1,8 +1,8 @@
 terraform {
   required_providers {
     google = {
-      source = "hashicorp/google"
-      version = "3.65.0"
+      source  = "hashicorp/google"
+      version = "4.34.0"
     }
   }
 }
@@ -28,7 +28,7 @@ resource "google_project_iam_member" "bigquery_data_viewer_binding" {
   project = var.bigquery_project
   role    = "roles/bigquery.dataViewer"
   member  = "serviceAccount:${var.tag_engine_project}@appspot.gserviceaccount.com"
-  
+
   depends_on = [google_project_service.bigquery_project]
 }
 
@@ -36,7 +36,7 @@ resource "google_project_iam_member" "bigquery_job_user_binding" {
   project = var.bigquery_project
   role    = "roles/bigquery.jobUser"
   member  = "serviceAccount:${var.tag_engine_project}@appspot.gserviceaccount.com"
-  
+
   depends_on = [google_project_service.bigquery_project]
 }
 
@@ -44,7 +44,7 @@ resource "google_project_iam_member" "bigquery_metadata_viewer_binding" {
   project = var.bigquery_project
   role    = "roles/bigquery.metadataViewer"
   member  = "serviceAccount:${var.tag_engine_project}@appspot.gserviceaccount.com"
-  
+
   depends_on = [google_project_service.bigquery_project]
 }
 
@@ -52,7 +52,7 @@ resource "google_project_iam_member" "data_catalog_tag_editor_binding" {
   project = var.bigquery_project
   role    = "roles/datacatalog.tagEditor"
   member  = "serviceAccount:${var.tag_engine_project}@appspot.gserviceaccount.com"
-  
+
   depends_on = [google_project_service.bigquery_project]
 }
 
@@ -60,7 +60,7 @@ resource "google_project_iam_member" "data_catalog_viewer_binding" {
   project = var.bigquery_project
   role    = "roles/datacatalog.viewer"
   member  = "serviceAccount:${var.tag_engine_project}@appspot.gserviceaccount.com"
-  
+
   depends_on = [google_project_service.bigquery_project]
 }
 
@@ -74,35 +74,35 @@ resource "google_project_iam_member" "iam_token_creator_binding" {
 
 # Cloud task queues
 resource "google_cloud_tasks_queue" "injector_queue" {
-  name = "tag-engine-injector-queue"
+  name     = "tag-engine-injector-queue4"
   location = var.app_engine_subregion
-  project = var.tag_engine_project
+  project  = var.tag_engine_project
 
   stackdriver_logging_config {
     sampling_ratio = 0.9
   }
-  
+
   depends_on = [google_project_service.tag_engine_project]
 }
 
 resource "google_cloud_tasks_queue" "work_queue" {
-  name = "tag-engine-work-queue"
+  name     = "tag-engine-work-queue4"
   location = var.app_engine_subregion
-  project = var.tag_engine_project
-  
-  rate_limits {
-      max_concurrent_dispatches = 500
-      max_dispatches_per_second = 500
-    }
+  project  = var.tag_engine_project
 
-    retry_config {
-      max_attempts = 1
-    }
+  rate_limits {
+    max_concurrent_dispatches = 500
+    max_dispatches_per_second = 500
+  }
+
+  retry_config {
+    max_attempts = 1
+  }
 
   stackdriver_logging_config {
     sampling_ratio = 0.9
   }
-  
+
   depends_on = [google_project_service.tag_engine_project]
 }
 
@@ -114,26 +114,26 @@ resource "google_cloud_scheduler_job" "scheduled_auto_updates" {
   description      = "update tags produced by scheduled configs which are set to auto update"
   time_zone        = "CST"
   attempt_deadline = "320s"
-  project 	       = var.tag_engine_project
-  region 		   = var.app_engine_subregion
+  project          = var.tag_engine_project
+  region           = var.app_engine_subregion
 
   retry_config {
     min_backoff_duration = "5s"
-    max_retry_duration = "0s"
-    max_doublings = 16
-    retry_count = 0
+    max_retry_duration   = "0s"
+    max_doublings        = 16
+    retry_count          = 0
   }
 
   app_engine_http_target {
-    #http_method = "POST"
+    http_method = "POST"
 
     #app_engine_routing {
-      #service  = "default"
-      #instance = "tag-engine-vanilla-335716.uc.r.appspot.com"
+    #service  = "default"
+    #instance = "tag-engine-vanilla-335716.uc.r.appspot.com"
     #}
 
     relative_uri = "/scheduled_auto_updates"
   }
-  
+
   depends_on = [google_project_service.tag_engine_project]
 }

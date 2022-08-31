@@ -1,538 +1,182 @@
-resource "google_firestore_index" "index-1" {
-  project = var.tag_engine_project
+# I've redone all the indexes to use a generic module (under modules/tag-engine-index)
+# I've removed the dependency tree that was used to keep parallelism,
+# and instead we are using the `-parallelism` flag of the terraform CLI (=4)
 
-  collection = "static_configs"
-
-  fields {
-    field_path = "config_type"
-    order      = "ASCENDING"
-  }
-
-  fields {
-    field_path = "included_uris_hash"
-    order      = "ASCENDING"
-  }
-
-  fields {
-    field_path = "template_uuid"
-    order      = "ASCENDING"
-  }
-
-  fields {
-    field_path = "config_status"
-    order      = "ASCENDING"
-  }
-
-  depends_on = [google_project_service.tag_engine_project]
+module "index-1" {
+  source          = "./modules/tag-engine-index"
+  collection_name = "static_configs"
+  field_names     = ["config_type", "included_uris_hash", "template_uuid", "config_status"]
+  project_name    = var.tag_engine_project
+}
+module "index-2" {
+  source          = "./modules/tag-engine-index"
+  collection_name = "dynamic_configs"
+  field_names     = ["config_type", "included_uris_hash", "template_uuid", "config_status"]
+  project_name    = var.tag_engine_project
 }
 
-resource "google_firestore_index" "index-2" {
-  project = var.tag_engine_project
-
-  collection = "dynamic_configs"
-
-  fields {
-    field_path = "config_type"
-    order      = "ASCENDING"
-  }
-
-  fields {
-    field_path = "included_uris_hash"
-    order      = "ASCENDING"
-  }
-
-  fields {
-    field_path = "template_uuid"
-    order      = "ASCENDING"
-  }
-
-  fields {
-    field_path = "config_status"
-    order      = "ASCENDING"
-  }
-
-  depends_on = [google_firestore_index.index-1]
+module "index-3" {
+  project_name    = var.tag_engine_project
+  collection_name = "entry_configs"
+  source          = "./modules/tag-engine-index"
+  field_names     = ["config_type", "included_uris_hash", "template_uuid", "config_status"]
 }
 
-resource "google_firestore_index" "index-3" {
-  project = var.tag_engine_project
-
-  collection = "entry_configs"
-
-  fields {
-    field_path = "config_type"
-    order      = "ASCENDING"
-  }
-
-  fields {
-    field_path = "included_uris_hash"
-    order      = "ASCENDING"
-  }
-
-  fields {
-    field_path = "template_uuid"
-    order      = "ASCENDING"
-  }
-
-  fields {
-    field_path = "config_status"
-    order      = "ASCENDING"
-  }
-
-  depends_on = [google_firestore_index.index-2]
+module "index-4" {
+  source          = "./modules/tag-engine-index"
+  project_name    = var.tag_engine_project
+  collection_name = "glossary_configs"
+  field_names     = ["config_type", "included_uris_hash", "template_uuid", "config_status"]
 }
 
-resource "google_firestore_index" "index-4" {
-  project = var.tag_engine_project
+module "index-5" {
+  source       = "./modules/tag-engine-index"
+  project_name = var.tag_engine_project
 
-  collection = "glossary_configs"
-
-  fields {
-    field_path = "config_type"
-    order      = "ASCENDING"
-  }
-
-  fields {
-    field_path = "included_uris_hash"
-    order      = "ASCENDING"
-  }
-
-  fields {
-    field_path = "template_uuid"
-    order      = "ASCENDING"
-  }
-
-  fields {
-    field_path = "config_status"
-    order      = "ASCENDING"
-  }
-
-  depends_on = [google_firestore_index.index-3]
+  collection_name = "sensitive_configs"
+  field_names     = ["config_type", "included_uris_hash", "template_uuid", "config_status"]
 }
 
-resource "google_firestore_index" "index-5" {
-  project = var.tag_engine_project
+module "index-6" {
+  source       = "./modules/tag-engine-index"
+  project_name = var.tag_engine_project
 
-  collection = "sensitive_configs"
-
-  fields {
-    field_path = "config_type"
-    order      = "ASCENDING"
-  }
-
-  fields {
-    field_path = "included_uris_hash"
-    order      = "ASCENDING"
-  }
-
-  fields {
-    field_path = "template_uuid"
-    order      = "ASCENDING"
-  }
-
-  fields {
-    field_path = "config_status"
-    order      = "ASCENDING"
-  }
-
-  depends_on = [google_firestore_index.index-4]
+  collection_name = "dynamic_configs"
+  field_names     = ["config_status", "refresh_mode", "scheduling_status", "next_run"]
 }
 
-resource "google_firestore_index" "index-6" {
-    project = var.tag_engine_project
+module "index-7" {
+  source       = "./modules/tag-engine-index"
+  project_name = var.tag_engine_project
 
-    collection = "dynamic_configs"
-
-    fields {
-      field_path = "config_status"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "refresh_mode"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "scheduling_status"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "next_run"
-      order      = "ASCENDING"
-    }
-
-    depends_on = [google_firestore_index.index-5]
+  collection_name = "static_configs"
+  field_names     = ["config_status", "refresh_mode", "scheduling_status", "next_run"]
 }
 
-resource "google_firestore_index" "index-7" {
-    project = var.tag_engine_project
+module "index-8" {
+  source       = "./modules/tag-engine-index"
+  project_name = var.tag_engine_project
 
-    collection = "static_configs"
-
-    fields {
-      field_path = "config_status"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "refresh_mode"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "scheduling_status"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "next_run"
-      order      = "ASCENDING"
-    }
-
-    depends_on = [google_firestore_index.index-6]
+  collection_name = "entry_configs"
+  field_names     = ["config_status", "refresh_mode", "scheduling_status", "next_run"]
 }
 
-resource "google_firestore_index" "index-8" {
-    project = var.tag_engine_project
+module "index-9" {
+  source       = "./modules/tag-engine-index"
+  project_name = var.tag_engine_project
 
-    collection = "entry_configs"
-
-    fields {
-      field_path = "config_status"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "refresh_mode"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "scheduling_status"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "next_run"
-      order      = "ASCENDING"
-    }
-
-    depends_on = [google_firestore_index.index-7]
-}
-
-resource "google_firestore_index" "index-9" {
-    project = var.tag_engine_project
-
-    collection = "glossary_configs"
-
-    fields {
-      field_path = "config_status"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "refresh_mode"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "scheduling_status"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "next_run"
-      order      = "ASCENDING"
-    }
-
-    depends_on = [google_firestore_index.index-8]
+  collection_name = "glossary_configs"
+  field_names     = ["config_status", "refresh_mode", "scheduling_status", "next_run"]
 }
 
 
-resource "google_firestore_index" "index-10" {
-    project = var.tag_engine_project
+module "index-10" {
+  source       = "./modules/tag-engine-index"
+  project_name = var.tag_engine_project
 
-    collection = "sensitive_configs"
-
-    fields {
-      field_path = "config_status"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "refresh_mode"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "scheduling_status"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "next_run"
-      order      = "ASCENDING"
-    }
-
-    depends_on = [google_firestore_index.index-9]
+  collection_name = "sensitive_configs"
+  field_names     = ["config_status", "refresh_mode", "scheduling_status", "next_run"]
 }
 
+
+module "index-12" {
+  source       = "./modules/tag-engine-index"
+  project_name = var.tag_engine_project
+
+  collection_name = "tasks"
+  field_names     = ["job_uuid", "config_uuid", "uri"]
+}
+
+module "index-13" {
+  source       = "./modules/tag-engine-index"
+  project_name = var.tag_engine_project
+
+  collection_name = "restore_configs"
+  field_names     = ["group_key", "source_template_uuid", "target_template_uuid"]
+}
+
+module "index-14" {
+  source       = "./modules/tag-engine-index"
+  project_name = var.tag_engine_project
+
+  collection_name = "dynamic_configs"
+  field_names     = ["group_key", "template_uuid", "config_status"]
+}
+
+module "index-15" {
+  source       = "./modules/tag-engine-index"
+  project_name = var.tag_engine_project
+
+  collection_name = "static_configs"
+  field_names     = ["group_key", "template_uuid", "config_status"]
+}
+
+module "index-16" {
+  source       = "./modules/tag-engine-index"
+  project_name = var.tag_engine_project
+
+  collection_name = "entry_configs"
+  field_names     = ["template_uuid", "config_status", "group_key"]
+}
+
+module "index-17" {
+  source       = "./modules/tag-engine-index"
+  project_name = var.tag_engine_project
+
+  collection_name = "glossary_configs"
+  field_names     = ["group_key", "template_uuid", "config_status"]
+}
+
+module "index-18" {
+  source       = "./modules/tag-engine-index"
+  project_name = var.tag_engine_project
+
+  collection_name = "sensitive_configs"
+  field_names     = ["group_key", "template_uuid", "config_status"]
+}
+
+module "index-19" {
+  source       = "./modules/tag-engine-index"
+  project_name = var.tag_engine_project
+
+  collection_name = "restore_configs"
+  field_names     = ["group_key", "target_template_uuid", "config_status"]
+}
+
+module "index-20" {
+  source          = "./modules/tag-engine-index"
+  project_name    = var.tag_engine_project
+  collection_name = "import_configs"
+  field_names     = ["group_key", "metadata_import_location", "template_uuid", "config_status"]
+}
+
+module "index-21" {
+  source          = "./modules/tag-engine-index"
+  project_name    = var.tag_engine_project
+  collection_name = "import_configs"
+  field_names     = ["group_key", "template_uuid", "config_status"]
+}
+
+# This one index has a DESCENDING field, so we can either change the module to receive a map of fields instead of a list
+# or we keep this only one as a manual entry
 resource "google_firestore_index" "index-11" {
-    project = var.tag_engine_project
-
-    collection = "logs"
-
-    fields {
-      field_path = "config_type"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "res"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "ts"
-      order      = "DESCENDING"
-    }
-
-    depends_on = [google_firestore_index.index-10]
-}
-
-resource "google_firestore_index" "index-12" {
-    project = var.tag_engine_project
-
-    collection = "tasks"
-
-    fields {
-      field_path = "job_uuid"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "config_uuid"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "uri"
-      order      = "ASCENDING"
-    }
-
-  depends_on = [google_firestore_index.index-11]
-}
-
-resource "google_firestore_index" "index-13" {
-    project = var.tag_engine_project
-
-    collection = "restore_configs"
-
-    fields {
-      field_path = "source_template_uuid"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "target_template_uuid"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "config_status"
-      order      = "ASCENDING"
-    }
-
-  depends_on = [google_firestore_index.index-12]
-}
-
-resource "google_firestore_index" "index-14" {
-    project = var.tag_engine_project
-
-    collection = "dynamic_configs"
-
-    fields {
-      field_path = "template_uuid"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "config_status"
-      order      = "ASCENDING"
-    }
+  project    = var.tag_engine_project
+  collection = "logs"
 
   fields {
-    field_path = "group_key"
-    order      = "ASCENDING"
+    field_path = "config_type"
+    order = "ASCENDING"
   }
-
-  depends_on = [google_firestore_index.index-13]
-}
-
-resource "google_firestore_index" "index-15" {
-    project = var.tag_engine_project
-
-    collection = "static_configs"
-
-    fields {
-      field_path = "template_uuid"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "config_status"
-      order      = "ASCENDING"
-    }
-
   fields {
-    field_path = "group_key"
-    order      = "ASCENDING"
+    field_path = "res"
+    order = "ASCENDING"
   }
-
-  depends_on = [google_firestore_index.index-14]
-}
-
-resource "google_firestore_index" "index-16" {
-    project = var.tag_engine_project
-
-    collection = "entry_configs"
-
-    fields {
-      field_path = "template_uuid"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "config_status"
-      order      = "ASCENDING"
-    }
-
   fields {
-    field_path = "group_key"
-    order      = "ASCENDING"
+    field_path = "ts"
+    order = "DESCENDING"
   }
-
-  depends_on = [google_firestore_index.index-15]
-}
-
-resource "google_firestore_index" "index-17" {
-    project = var.tag_engine_project
-
-    collection = "glossary_configs"
-
-    fields {
-      field_path = "template_uuid"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "config_status"
-      order      = "ASCENDING"
-    }
-
   fields {
-    field_path = "group_key"
-    order      = "ASCENDING"
+    field_path = "__name__"
+    order = "ASCENDING"
   }
-
-  depends_on = [google_firestore_index.index-16]
-}
-
-resource "google_firestore_index" "index-18" {
-    project = var.tag_engine_project
-
-    collection = "sensitive_configs"
-
-    fields {
-      field_path = "template_uuid"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "config_status"
-      order      = "ASCENDING"
-    }
-
-  fields {
-    field_path = "group_key"
-    order      = "ASCENDING"
-  }
-
-  depends_on = [google_firestore_index.index-17]
-}
-
-resource "google_firestore_index" "index-19" {
-    project = var.tag_engine_project
-
-    collection = "restore_configs"
-
-    fields {
-      field_path = "target_template_uuid"
-      order      = "ASCENDING"
-    }
-
-    fields {
-      field_path = "config_status"
-      order      = "ASCENDING"
-    }
-
-  fields {
-    field_path = "group_key"
-    order      = "ASCENDING"
-  }
-
-  depends_on = [google_firestore_index.index-18]
-}
-
-resource "google_firestore_index" "index-20" {
-    project = var.tag_engine_project
-
-    collection = "import_configs"
-
-    fields {
-      field_path = "metadata_import_location"
-      order      = "ASCENDING"
-    }
-	
-    fields {
-      field_path = "template_uuid"
-      order      = "ASCENDING"
-    }
-	
-    fields {
-      field_path = "config_status"
-      order      = "ASCENDING"
-    }
-
-  fields {
-    field_path = "group_key"
-    order      = "ASCENDING"
-  }
-
-  depends_on = [google_firestore_index.index-19]
-}
-
-resource "google_firestore_index" "index-21" {
-    project = var.tag_engine_project
-
-    collection = "import_configs"
-
-    fields {
-      field_path = "template_uuid"
-      order      = "ASCENDING"
-    }
-	
-    fields {
-      field_path = "config_status"
-      order      = "ASCENDING"
-    }
-
-  fields {
-    field_path = "group_key"
-    order      = "ASCENDING"
-  }
-
-  depends_on = [google_firestore_index.index-20]
 }
