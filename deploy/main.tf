@@ -74,7 +74,7 @@ resource "google_project_iam_member" "iam_token_creator_binding" {
 
 # Cloud task queues
 resource "google_cloud_tasks_queue" "injector_queue" {
-  name     = "tag-engine-injector-queue"
+  name     = "tag-engine-injector-queue5"
   location = var.app_engine_subregion
   project  = var.tag_engine_project
 
@@ -86,7 +86,7 @@ resource "google_cloud_tasks_queue" "injector_queue" {
 }
 
 resource "google_cloud_tasks_queue" "work_queue" {
-  name     = "tag-engine-work-queue"
+  name     = "tag-engine-work-queue5"
   location = var.app_engine_subregion
   project  = var.tag_engine_project
 
