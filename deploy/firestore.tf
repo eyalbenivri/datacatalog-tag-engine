@@ -116,7 +116,7 @@ module "index-16" {
   project_name = var.tag_engine_project
 
   collection_name = "entry_configs"
-  field_names     = ["template_uuid", "config_status", "group_key"]
+  field_names     = ["group_key", "template_uuid", "config_status"]
 }
 
 module "index-17" {
