@@ -20,16 +20,12 @@ from typing import List
 
 from flask import Flask, render_template, request, jsonify, json, session
 
+import BackupFileParser as bfp
+import CsvParser as cp
 import DataCatalogUtils as dc
 import JobManager as jobm
 import Resources as res
 import TagEngineUtils as te
-import Resources as res
-import BackupFileParser as bfp
-import CsvParser as cp
-import constants
-
-import JobManager as jobm
 import TaskManager as taskm
 import UserUtils as uu
 import constants
@@ -75,6 +71,15 @@ tm = taskm.TaskManager(config['DEFAULT']['TAG_ENGINE_PROJECT'], config['DEFAULT'
 
 def get_group_from_group_key(group_key: str, groups: List[dict]) -> dict:
     return next(group for group in groups if group["group_key"] == group_key)
+
+
+def get_group_from_group_email(group_email: str, groups: List[dict]):
+    try:
+        group = next(group for group in groups if group["group_email"] == group_email)
+    except StopIteration:
+        raise Exception(f"Group with email {group_email} not found for user")
+    else:
+        return group
 
 
 """
@@ -1153,7 +1158,8 @@ def process_update_restore_config():
 
     # print("action: " + str(action))
 
-    dcu = dc.DataCatalogUtils(session["user_email"], target_template_id, target_template_project, target_template_region)
+    dcu = dc.DataCatalogUtils(session["user_email"], target_template_id, target_template_project,
+                              target_template_region)
     template_fields = dcu.get_template()
 
     if action == "Submit Changes":
@@ -1317,6 +1323,7 @@ def process_static_config():
         excluded_uris=excluded_uris,
         tag_history=tag_history_enabled,
         tag_stream=tag_stream_enabled,
+        group=group,
         status=job_creation)
     # [END render_template]
 
@@ -1402,8 +1409,8 @@ def process_dynamic_config():
     template_uuid = teu.write_tag_template(group['group_key'], template_id, project_id, region)
     config_uuid, included_uris_hash = teu.write_dynamic_config(group['group_key'], 'PENDING', fields, included_uris,
                                                                excluded_uris, template_uuid, refresh_mode,
-                                                               refresh_frequency, refresh_unit, \
-                                                               tag_history_option, tag_stream_option)
+                                                               refresh_frequency, refresh_unit, tag_history_option,
+                                                               tag_stream_option)
     job_uuid = None
     if isinstance(config_uuid, str):
         job_uuid = jm.create_job(config_uuid, 'DYNAMIC')
@@ -1798,10 +1805,10 @@ def process_restore_config():
     target_template_region = request.form['target_template_region']
 
     metadata_export_location = request.form['metadata_export_location']
-
+    group = get_group_from_group_key(request.form['group_key'], session['groups'])
     action = request.form['action']
 
-    dcu = dc.DataCatalogUtils(template_id, project_id, region)
+    dcu = dc.DataCatalogUtils(session['user_email'], template_id, project_id, region)
     template = dcu.get_template()
 
     if action == "Cancel Changes":
@@ -1887,7 +1894,7 @@ def process_import_config():
 
     action = request.form['action']
 
-    dcu = dc.DataCatalogUtils(template_id, template_project, template_region)
+    dcu = dc.DataCatalogUtils(session['user_email'], template_id, template_project, template_region)
     template = dcu.get_template()
 
     if action == "Cancel Changes":
@@ -1994,6 +2001,7 @@ Args:
     refresh_unit: minutes or hours
     tag_history: true if tag history is on, false otherwise 
     tag_stream: true if tag stream is on, false otherwise
+    group_email: the relevant group email identifier
 Returns:
     job_uuid 
 """
@@ -2007,12 +2015,13 @@ def dynamic_create():
     template_id = json['template_id']
     project_id = json['project_id']
     region = json['region']
+    group = get_group_from_group_email(json['group_email'], session['groups'])
 
     # print('template_id: ' + template_id)
     # print('project_id: ' + project_id)
     # print('region: ' + region)
 
-    template_uuid = teu.write_tag_template(template_id, project_id, region)
+    template_uuid = teu.write_tag_template(group['group_key'], template_id, project_id, region)
 
     dcu = dc.DataCatalogUtils(session['user_email'], template_id, project_id, region)
     included_fields = json['fields']
@@ -2026,10 +2035,9 @@ def dynamic_create():
     tag_history = json['tag_history']
     tag_stream = json['tag_stream']
 
-    config_uuid, included_uris_hash = teu.write_dynamic_config('PENDING', fields, included_uris, excluded_uris,
-                                                               template_uuid, \
-                                                               refresh_mode, refresh_frequency, refresh_unit, \
-                                                               tag_history, tag_stream)
+    config_uuid, included_uris_hash = teu.write_dynamic_config(group['group_key'], 'PENDING', fields, included_uris,
+                                                               excluded_uris, template_uuid, refresh_mode,
+                                                               refresh_frequency, refresh_unit, tag_history, tag_stream)
 
     if isinstance(config_uuid, str):
         job_uuid = jm.create_job(config_uuid, 'DYNAMIC')
@@ -2054,6 +2062,7 @@ def static_create():
         refresh_unit: minutes or hours
         tag_history: true if tag history is on, false otherwise
         tag_stream: true if tag stream is on, false otherwise
+        group_email: the group email
     Returns:
         job_uuid
     """
@@ -2063,12 +2072,13 @@ def static_create():
     template_id = json['template_id']
     project_id = json['project_id']
     region = json['region']
+    group = get_group_from_group_email(json['group_email'], session['groups'])
 
     # print('template_id: ' + template_id)
     # print('project_id: ' + project_id)
     # print('region: ' + region)
 
-    template_uuid = teu.write_tag_template(template_id, project_id, region)
+    template_uuid = teu.write_tag_template(group['group_key'], template_id, project_id, region)
 
     dcu = dc.DataCatalogUtils(session['user_email'], template_id, project_id, region)
     included_fields = json['fields']
@@ -2084,10 +2094,10 @@ def static_create():
     # since we are creating a new config, we are overwriting any previously created tags
     overwrite = True
 
-    config_uuid, included_uris_hash = teu.write_static_config('PENDING', fields, included_uris, excluded_uris,
-                                                              template_uuid, \
-                                                              refresh_mode, refresh_frequency, refresh_unit, \
-                                                              tag_history, tag_stream, overwrite)
+    config_uuid, included_uris_hash = teu.write_static_config(group['group_key'], 'PENDING', fields, included_uris,
+                                                              excluded_uris, template_uuid, refresh_mode,
+                                                              refresh_frequency, refresh_unit, tag_history, tag_stream,
+                                                              overwrite)
 
     if isinstance(config_uuid, str):
         job_uuid = jm.create_job(config_uuid, 'STATIC')
@@ -2112,6 +2122,7 @@ def entry_create():
         refresh_unit: minutes or hours
         tag_history: true if tag history is on, false otherwise
         tag_stream: true if tag stream is on, false otherwise
+        group_email: str. the group email
     Returns:
         job_uuid
     """
@@ -2121,12 +2132,13 @@ def entry_create():
     template_id = json['template_id']
     project_id = json['project_id']
     region = json['region']
+    group = get_group_from_group_email(json['group_email'], session['groups'])
 
     # print('template_id: ' + template_id)
     # print('project_id: ' + project_id)
     # print('region: ' + region)
 
-    template_uuid = teu.write_tag_template(template_id, project_id, region)
+    template_uuid = teu.write_tag_template(group['group_key'], template_id, project_id, region)
 
     dcu = dc.DataCatalogUtils(session['user_email'], template_id, project_id, region)
     included_fields = json['fields']
@@ -2144,10 +2156,9 @@ def entry_create():
     tag_history = json['tag_history']
     tag_stream = json['tag_stream']
 
-    config_uuid, included_uris_hash = teu.write_entry_config('PENDING', fields, included_uris, excluded_uris,
-                                                             template_uuid, \
-                                                             refresh_mode, refresh_frequency, refresh_unit, \
-                                                             tag_history, tag_stream)
+    config_uuid, included_uris_hash = teu.write_entry_config(group['group_key'], 'PENDING', fields, included_uris,
+                                                             excluded_uris, template_uuid, refresh_mode,
+                                                             refresh_frequency, refresh_unit, tag_history, tag_stream)
 
     if isinstance(config_uuid, str):
         job_uuid = jm.create_job(config_uuid, 'ENTRY')
@@ -2182,12 +2193,13 @@ def glossary_create():
     template_id = json['template_id']
     project_id = json['project_id']
     region = json['region']
+    group = get_group_from_group_email(json['group_email'], session['groups'])
 
     # print('template_id: ' + template_id)
     # print('project_id: ' + project_id)
     # print('region: ' + region)
 
-    template_uuid = teu.write_tag_template(template_id, project_id, region)
+    template_uuid = teu.write_tag_template(group['group_key'], template_id, project_id, region)
 
     dcu = dc.DataCatalogUtils(session['user_email'], template_id, project_id, region)
     included_fields = json['fields']
@@ -2214,9 +2226,9 @@ def glossary_create():
     tag_stream = json['tag_stream']
     overwrite = True
 
-    config_uuid, included_uris_hash = teu.write_glossary_config('PENDING', fields, mapping_table, included_uris,
-                                                                excluded_uris, template_uuid, \
-                                                                refresh_mode, refresh_frequency, refresh_unit, \
+    config_uuid, included_uris_hash = teu.write_glossary_config(group['group_key'], 'PENDING', fields, mapping_table,
+                                                                included_uris, excluded_uris, template_uuid,
+                                                                refresh_mode, refresh_frequency, refresh_unit,
                                                                 tag_history, tag_stream, overwrite)
 
     if isinstance(config_uuid, str):
@@ -2257,14 +2269,15 @@ def sensitive_create():
     template_id = json['template_id']
     project_id = json['project_id']
     region = json['region']
+    group = get_group_from_group_email(json['group_email'], session['groups'])
 
     # print('template_id: ' + template_id)
     # print('project_id: ' + project_id)
     # print('region: ' + region)
 
-    template_uuid = teu.write_tag_template(template_id, project_id, region)
+    template_uuid = teu.write_tag_template(group['group_key'], template_id, project_id, region)
 
-    dcu = dc.DataCatalogUtils(template_id, project_id, region)
+    dcu = dc.DataCatalogUtils(session['user_email'], template_id, project_id, region)
     included_fields = json['fields']
     fields = dcu.get_template(included_fields)
 
@@ -2304,7 +2317,8 @@ def sensitive_create():
             taxonomy_id = json['taxonomy_id']
         else:
             print(
-                "sensitive_config request must include a taxonomy_id when the create_policy_tags field is true. This is a required parameter.")
+                "sensitive_config request must include a taxonomy_id when the create_policy_tags field is true. "
+                "This is a required parameter.")
             resp = jsonify(success=False)
             return resp
 
@@ -2314,10 +2328,10 @@ def sensitive_create():
     tag_stream = json['tag_stream']
     overwrite = True
 
-    config_uuid, included_uris_hash = teu.write_sensitive_config('PENDING', fields, dlp_dataset, mapping_table,
-                                                                 included_uris, excluded_uris, \
-                                                                 create_policy_tags, taxonomy_id, template_uuid, \
-                                                                 refresh_mode, refresh_frequency, refresh_unit, \
+    config_uuid, included_uris_hash = teu.write_sensitive_config(group['group_key'], 'PENDING', fields, dlp_dataset,
+                                                                 mapping_table, included_uris, excluded_uris,
+                                                                 create_policy_tags, taxonomy_id, template_uuid,
+                                                                 refresh_mode, refresh_frequency, refresh_unit,
                                                                  tag_history, tag_stream, overwrite)
 
     if isinstance(config_uuid, str):
@@ -2357,6 +2371,8 @@ def restore_create():
     target_template_project = json['target_template_project']
     target_template_region = json['target_template_region']
 
+    group = get_group_from_group_email(json['group_email'], session['groups'])
+
     print('source_template_id: ', source_template_id)
     print('source_template_project: ', source_template_project)
     print('source_template_region: ', source_template_region)
@@ -2365,8 +2381,10 @@ def restore_create():
     print('target_template_project: ', target_template_project)
     print('target_template_region: ', target_template_region)
 
-    source_template_uuid = teu.write_tag_template(source_template_id, source_template_project, source_template_region)
-    target_template_uuid = teu.write_tag_template(target_template_id, target_template_project, target_template_region)
+    source_template_uuid = teu.write_tag_template(group['group_key'], source_template_id, source_template_project,
+                                                  source_template_region)
+    target_template_uuid = teu.write_tag_template(group['group_key'], target_template_id, target_template_project,
+                                                  target_template_region)
 
     if 'metadata_export_location' in json:
         metadata_export_location = json['metadata_export_location']
@@ -2380,12 +2398,10 @@ def restore_create():
     tag_stream = json['tag_stream']
     overwrite = True
 
-    config_uuid = teu.write_restore_config('PENDING', source_template_uuid, source_template_id, source_template_project,
-                                           source_template_region, \
-                                           target_template_uuid, target_template_id, target_template_project,
-                                           target_template_region, \
-                                           metadata_export_location, \
-                                           tag_history, tag_stream, overwrite)
+    config_uuid = teu.write_restore_config(group['group_key'], 'PENDING', source_template_uuid, source_template_id,
+                                           source_template_project, source_template_region, target_template_uuid,
+                                           target_template_id, target_template_project, target_template_region,
+                                           metadata_export_location, tag_history, tag_stream, overwrite)
 
     if isinstance(config_uuid, str):
         job_uuid = jm.create_job(config_uuid, 'RESTORE')
@@ -2404,11 +2420,14 @@ def import_create():
     template_project = json['template_project']
     template_region = json['template_region']
 
+    group = get_group_from_group_email(json['group_email'], session['groups'])
+
+
     print('template_id: ', template_id)
     print('template_project: ', template_project)
     print('template_region: ', template_region)
 
-    template_uuid = teu.write_tag_template(template_id, template_project, template_region)
+    template_uuid = teu.write_tag_template(group['group_key'], template_id, template_project, template_region)
 
     if 'metadata_import_location' in json:
         metadata_export_location = json['metadata_import_location']
@@ -2424,8 +2443,8 @@ def import_create():
     tag_stream = json['tag_stream']
     overwrite = True
 
-    config_uuid = teu.write_import_config('PENDING', template_uuid, template_id, template_project, template_region, \
-                                          metadata_import_location, tag_history, tag_stream, overwrite)
+    config_uuid = teu.write_import_config(group['group_key'], 'PENDING', template_uuid, template_id, template_project,
+                                          template_region, metadata_import_location, tag_history, tag_stream, overwrite)
 
     if isinstance(config_uuid, str):
         job_uuid = jm.create_job(config_uuid, 'IMPORT')
@@ -2452,8 +2471,9 @@ def ondemand_updates():
     template_id = json['template_id']
     project_id = json['project_id']
     region = json['region']
+    group = get_group_from_group_email(json['group_email'], session['groups'])
 
-    template_exists, template_uuid = teu.read_tag_template(template_id, project_id, region)
+    template_exists, template_uuid = teu.read_tag_template(template_id, project_id, region, group['group_key'])
 
     # validate request
     if not template_exists:
@@ -2463,11 +2483,11 @@ def ondemand_updates():
 
     if 'included_uris' in json:
         included_uris = json['included_uris']
-        success, config = teu.lookup_config_by_included_uris(template_uuid, included_uris, None)
+        success, config = teu.lookup_config_by_included_uris(group['group_key'], template_uuid, included_uris, None)
 
     elif 'included_uris_hash' in json:
         included_uris_hash = json['included_uris_hash']
-        success, config = teu.lookup_config_by_included_uris(template_uuid, None, included_uris_hash)
+        success, config = teu.lookup_config_by_included_uris(group['group_key'], template_uuid, None, included_uris_hash)
 
     else:
         resp = jsonify(success=False,
@@ -2483,7 +2503,8 @@ def ondemand_updates():
     if config['refresh_mode'] == 'AUTO':
         print("config == AUTO: " + str(config))
         resp = jsonify(success=False,
-                       message="Config has refresh_mode='AUTO'. Please update your config to refresh_mode='ON_DEMAND' prior to calling this method.")
+                       message="Config has refresh_mode='AUTO'. Please update your config to refresh_mode='ON_DEMAND' "
+                               "prior to calling this method.")
         return resp
 
     # config is valid, create the job

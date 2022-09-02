@@ -1048,7 +1048,7 @@ class TagEngineUtils:
 
         return ready_configs
 
-    def lookup_config_by_included_uris(self, template_uuid, included_uris, included_uris_hash):
+    def lookup_config_by_included_uris(self, group_key, template_uuid, included_uris, included_uris_hash):
 
         success = False
         config_result = {}
@@ -1060,11 +1060,23 @@ class TagEngineUtils:
             config_ref = self.db.collection(coll_name)
 
             if included_uris is not None:
-                docs = config_ref.where('template_uuid', '==', template_uuid).where('config_status', '==', 'ACTIVE') \
-                    .where('included_uris', '==', included_uris).stream()
+                docs = (
+                    config_ref
+                    .where('template_uuid', '==', template_uuid)
+                    .where('config_status', '==', 'ACTIVE')
+                    .where('included_uris', '==', included_uris)
+                    .where('group_key', '==', group_key)
+                    .stream()
+                )
             if included_uris_hash is not None:
-                docs = config_ref.where('template_uuid', '==', template_uuid).where('config_status', '==', 'ACTIVE') \
-                    .where('included_uris_hash', '==', included_uris_hash).stream()
+                docs = (
+                    config_ref
+                    .where('template_uuid', '==', template_uuid)
+                    .where('config_status', '==', 'ACTIVE')
+                    .where('included_uris_hash', '==', included_uris_hash)
+                    .where('group_key', '==', group_key)
+                    .stream()
+                )
 
             for doc in docs:
                 config_result = doc.to_dict()
@@ -1074,9 +1086,8 @@ class TagEngineUtils:
         return success, config_result
 
     def update_config(self, group_key, old_config_uuid, config_type, config_status, fields, included_uris,
-                      excluded_uris,
-                      template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream,
-                      overwrite=False, mapping_table=None):
+                      excluded_uris, template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history,
+                      tag_stream, overwrite=False, mapping_table=None):
 
         coll_name = self.get_config_collection(config_type)
         self.db.collection(coll_name).document(old_config_uuid).update({
@@ -1148,7 +1159,7 @@ class TagEngineUtils:
                                                     source_template_project, source_template_region,
                                                     target_template_uuid, target_template_id, target_template_project,
                                                     target_template_region, metadata_export_location, tag_history,
-                                                    tag_stream, overwrite=False) # the overwrite bit feels like a bug
+                                                    tag_stream, overwrite=False)  # the overwrite bit feels like a bug
 
         return new_config_uuid
 
