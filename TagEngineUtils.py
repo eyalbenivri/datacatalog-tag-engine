@@ -943,8 +943,9 @@ class TagEngineUtils:
         self.db.collection('tag_value_error').add(error)
         # print('Wrote error entry.')
 
-    def get_config_collection(self, config_type):
-
+    @staticmethod
+    def get_config_collection(config_type):
+        coll = None
         if config_type == 'STATIC':
             coll = 'static_configs'
         if config_type == 'DYNAMIC':
@@ -959,7 +960,8 @@ class TagEngineUtils:
             coll = 'restore_configs'
         if config_type == 'IMPORT':
             coll = 'import_configs'
-
+        if not coll:
+            raise Exception(f"Unknown config type {config_type}")
         return coll
 
     def read_configs(self, group_key, template_id, project_id, region, config_type='ALL'):
