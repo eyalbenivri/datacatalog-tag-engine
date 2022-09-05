@@ -356,8 +356,9 @@ class TagEngineUtils:
 
         return template_uuid
 
-    def write_static_config(self, group_key, config_status, fields, included_uris, excluded_uris, template_uuid,
-                            refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream, overwrite=False):
+    def write_static_config(self, group_key, owner_user_id, config_status, fields, included_uris, excluded_uris,
+                            template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream,
+                            overwrite=False):
 
         # hash the included_uris string
         included_uris_hash = hashlib.md5(included_uris.encode()).hexdigest()
@@ -412,6 +413,7 @@ class TagEngineUtils:
                 'next_run': next_run,
                 'version': 1,
                 'group_key': group_key,
+                'owner_user_id': owner_user_id,
                 'overwrite': overwrite
             })
 
@@ -435,13 +437,14 @@ class TagEngineUtils:
                 'tag_stream': tag_stream,
                 'version': 1,
                 'group_key': group_key,
+                'owner_user_id': owner_user_id,
                 'overwrite': overwrite
             })
 
         return config_uuid, included_uris_hash
 
-    def write_dynamic_config(self, group_key, config_status, fields, included_uris, excluded_uris, template_uuid,
-                             refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream):
+    def write_dynamic_config(self, group_key, owner_user_id, config_status, fields, included_uris, excluded_uris,
+                             template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream):
 
         included_uris_hash = hashlib.md5(included_uris.encode()).hexdigest()
 
@@ -494,6 +497,7 @@ class TagEngineUtils:
                 'scheduling_status': 'PENDING',
                 'next_run': next_run,
                 'group_key': group_key,
+                'owner_user_id': owner_user_id,
                 'version': 1
             })
 
@@ -513,6 +517,7 @@ class TagEngineUtils:
                 'tag_history': tag_history,
                 'tag_stream': tag_stream,
                 'group_key': group_key,
+                'owner_user_id': owner_user_id,
                 'version': 1
             })
 
@@ -520,33 +525,8 @@ class TagEngineUtils:
 
         return config_uuid, included_uris_hash
 
-    def validate_auto_refresh(self, refresh_frequency, refresh_unit):
-
-        if type(refresh_frequency) is int:
-            if refresh_frequency > 0:
-                delta = refresh_frequency
-            else:
-                delta = 24
-
-        if type(refresh_frequency) is str:
-            if refresh_frequency.isdigit():
-                delta = int(refresh_frequency)
-            else:
-                delta = 24
-
-        if refresh_unit == 'minutes':
-            next_run = datetime.utcnow() + timedelta(minutes=delta)
-        elif refresh_unit == 'hours':
-            next_run = datetime.utcnow() + timedelta(hours=delta)
-        elif refresh_unit == 'days':
-            next_run = datetime.utcnow() + timedelta(days=delta)
-        else:
-            next_run = datetime.utcnow() + timedelta(days=delta)  # default to days
-
-        return delta, next_run
-
-    def write_entry_config(self, group_key, config_status, fields, included_uris, excluded_uris, template_uuid,
-                           refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream):
+    def write_entry_config(self, group_key, owner_user_id, config_status, fields, included_uris, excluded_uris,
+                           template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream):
 
         print('** enter write_entry_config **')
         print('refresh_mode: ', refresh_mode)
@@ -604,6 +584,7 @@ class TagEngineUtils:
                 'scheduling_status': 'PENDING',
                 'next_run': next_run,
                 'group_key': group_key,
+                'owner_user_id': owner_user_id,
                 'version': 1
             })
 
@@ -623,6 +604,7 @@ class TagEngineUtils:
                 'tag_history': tag_history,
                 'tag_stream': tag_stream,
                 'group_key': group_key,
+                'owner_user_id': owner_user_id,
                 'version': 1
             })
 
@@ -630,9 +612,9 @@ class TagEngineUtils:
 
         return config_uuid, included_uris_hash
 
-    def write_glossary_config(self, group_key, config_status, fields, mapping_table, included_uris, excluded_uris,
-                              template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream,
-                              overwrite=False):
+    def write_glossary_config(self, group_key, owner_user_id, config_status, fields, mapping_table, included_uris,
+                              excluded_uris, template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history,
+                              tag_stream, overwrite=False):
 
         print('** enter write_glossary_config **')
 
@@ -689,6 +671,7 @@ class TagEngineUtils:
                 'next_run': next_run,
                 'version': 1,
                 'group_key': group_key,
+                'owner_user_id': owner_user_id,
                 'overwrite': overwrite
             })
 
@@ -710,6 +693,7 @@ class TagEngineUtils:
                 'tag_stream': tag_stream,
                 'version': 1,
                 'group_key': group_key,
+                'owner_user_id': owner_user_id,
                 'overwrite': overwrite
             })
 
@@ -717,9 +701,9 @@ class TagEngineUtils:
 
         return config_uuid, included_uris_hash
 
-    def write_sensitive_config(self, group_key, config_status, fields, dlp_dataset, mapping_table, included_uris,
-                               excluded_uris, create_policy_tags, taxonomy_id, template_uuid, refresh_mode,
-                               refresh_frequency, refresh_unit, tag_history, tag_stream, overwrite=False):
+    def write_sensitive_config(self, group_key, owner_user_id, config_status, fields, dlp_dataset, mapping_table,
+                               included_uris, excluded_uris, create_policy_tags, taxonomy_id, template_uuid,
+                               refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream, overwrite=False):
 
         print('** enter write_sensitive_config **')
 
@@ -779,6 +763,7 @@ class TagEngineUtils:
                 'next_run': next_run,
                 'version': 1,
                 'group_key': group_key,
+                'owner_user_id': owner_user_id,
                 'overwrite': overwrite
             })
 
@@ -803,6 +788,7 @@ class TagEngineUtils:
                 'tag_stream': tag_stream,
                 'version': 1,
                 'group_key': group_key,
+                'owner_user_id': owner_user_id,
                 'overwrite': overwrite
             })
 
@@ -810,7 +796,7 @@ class TagEngineUtils:
 
         return config_uuid, included_uris_hash
 
-    def write_restore_config(self, group_key, config_status, source_template_uuid, source_template_id,
+    def write_restore_config(self, group_key, owner_user_id, config_status, source_template_uuid, source_template_id,
                              source_template_project, source_template_region, target_template_uuid, target_template_id,
                              target_template_project, target_template_region, metadata_export_location, tag_history,
                              tag_stream, overwrite=False):
@@ -860,14 +846,14 @@ class TagEngineUtils:
             'tag_history': tag_history,
             'tag_stream': tag_stream,
             'group_key': group_key,
+            'owner_user_id': owner_user_id,
             'overwrite': overwrite
         })
 
         return config_uuid
 
-    def write_import_config(self, group_key, config_status, template_uuid, template_id, template_project,
-                            template_region,
-                            metadata_import_location, tag_history, tag_stream, overwrite=False):
+    def write_import_config(self, group_key, owner_user_id, config_status, template_uuid, template_id, template_project,
+                            template_region, metadata_import_location, tag_history, tag_stream, overwrite=False):
 
         print('** write_import_config **')
 
@@ -910,6 +896,7 @@ class TagEngineUtils:
             'tag_history': tag_history,
             'tag_stream': tag_stream,
             'group_key': group_key,
+            'owner_user_id': owner_user_id,
             'overwrite': overwrite
         })
 
@@ -1085,9 +1072,9 @@ class TagEngineUtils:
 
         return success, config_result
 
-    def update_config(self, group_key, old_config_uuid, config_type, config_status, fields, included_uris,
-                      excluded_uris, template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history,
-                      tag_stream, overwrite=False, mapping_table=None):
+    def update_config(self, group_key, owner_user_id, old_config_uuid, config_type, config_status, fields,
+                      included_uris, excluded_uris, template_uuid, refresh_mode, refresh_frequency, refresh_unit,
+                      tag_history, tag_stream, overwrite=False, mapping_table=None):
 
         coll_name = self.get_config_collection(config_type)
         self.db.collection(coll_name).document(old_config_uuid).update({
@@ -1095,26 +1082,30 @@ class TagEngineUtils:
         })
 
         if config_type == 'STATIC':
-            new_config_uuid, included_uris_hash = self.write_static_config(group_key, config_status, fields,
+            new_config_uuid, included_uris_hash = self.write_static_config(group_key, owner_user_id, config_status,
+                                                                           fields,
                                                                            included_uris, excluded_uris, template_uuid,
                                                                            refresh_mode, refresh_frequency,
                                                                            refresh_unit, tag_history, tag_stream,
                                                                            overwrite)
 
         if config_type == 'DYNAMIC':
-            new_config_uuid, included_uris_hash = self.write_dynamic_config(group_key, config_status, fields,
+            new_config_uuid, included_uris_hash = self.write_dynamic_config(group_key, owner_user_id, config_status,
+                                                                            fields,
                                                                             included_uris, excluded_uris, template_uuid,
                                                                             refresh_mode, refresh_frequency,
                                                                             refresh_unit, tag_history, tag_stream)
         if config_type == 'ENTRY':
-            new_config_uuid, included_uris_hash = self.write_entry_config(group_key, config_status, fields,
+            new_config_uuid, included_uris_hash = self.write_entry_config(group_key, owner_user_id, config_status,
+                                                                          fields,
                                                                           included_uris,
                                                                           excluded_uris, template_uuid, refresh_mode,
                                                                           refresh_frequency, refresh_unit, tag_history,
                                                                           tag_stream)
 
         if config_type == 'GLOSSARY':
-            new_config_uuid, included_uris_hash = self.write_glossary_config(group_key, config_status, fields,
+            new_config_uuid, included_uris_hash = self.write_glossary_config(group_key, owner_user_id, config_status,
+                                                                             fields,
                                                                              mapping_table, included_uris,
                                                                              excluded_uris, template_uuid, refresh_mode,
                                                                              refresh_frequency, refresh_unit,
@@ -1123,12 +1114,10 @@ class TagEngineUtils:
 
         return new_config_uuid
 
-    def update_sensitive_config(self, group_key, old_config_uuid, config_status, dlp_dataset, mapping_table,
-                                included_uris,
-                                excluded_uris,
-                                create_policy_tags, taxonomy_id, template_uuid, refresh_mode, refresh_frequency,
-                                refresh_unit,
-                                tag_history, tag_stream, overwrite):
+    def update_sensitive_config(self, group_key, owner_user_id, old_config_uuid, config_status, dlp_dataset,
+                                mapping_table, included_uris, excluded_uris, create_policy_tags, taxonomy_id,
+                                template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream,
+                                overwrite):
 
         self.db.collection('sensitive_configs').document(old_config_uuid).update({
             'config_status': "INACTIVE"
@@ -1136,7 +1125,8 @@ class TagEngineUtils:
 
         config = self.read_config(old_config_uuid, 'SENSITIVE')
 
-        new_config_uuid, included_uris_hash = self.write_sensitive_config(group_key, config_status, config['fields'],
+        new_config_uuid, included_uris_hash = self.write_sensitive_config(group_key, owner_user_id, config_status,
+                                                                          config['fields'],
                                                                           dlp_dataset, mapping_table, included_uris,
                                                                           excluded_uris, create_policy_tags,
                                                                           taxonomy_id, template_uuid, refresh_mode,
@@ -1145,17 +1135,17 @@ class TagEngineUtils:
 
         return new_config_uuid
 
-    def update_restore_config(self, group_key, old_config_uuid, config_status, source_template_uuid, source_template_id,
-                              source_template_project,
-                              source_template_region, target_template_uuid, target_template_id, target_template_project, \
-                              target_template_region, metadata_export_location, tag_history, tag_stream,
-                              overwrite=False):
+    def update_restore_config(self, group_key, owner_user_id, old_config_uuid, config_status, source_template_uuid,
+                              source_template_id, source_template_project, source_template_region, target_template_uuid,
+                              target_template_id, target_template_project, target_template_region,
+                              metadata_export_location, tag_history, tag_stream, overwrite=False):
 
         self.db.collection('restore_configs').document(old_config_uuid).update({
             'config_status': "INACTIVE"
         })
 
-        new_config_uuid = self.write_restore_config(group_key, config_status, source_template_uuid, source_template_id,
+        new_config_uuid = self.write_restore_config(group_key, owner_user_id, config_status, source_template_uuid,
+                                                    source_template_id,
                                                     source_template_project, source_template_region,
                                                     target_template_uuid, target_template_id, target_template_project,
                                                     target_template_region, metadata_export_location, tag_history,
