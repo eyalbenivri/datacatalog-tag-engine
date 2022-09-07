@@ -525,6 +525,31 @@ class TagEngineUtils:
 
         return config_uuid, included_uris_hash
 
+    def validate_auto_refresh(self, refresh_frequency, refresh_unit):
+
+        if type(refresh_frequency) is int:
+            if refresh_frequency > 0:
+                delta = refresh_frequency
+            else:
+                delta = 24
+
+        if type(refresh_frequency) is str:
+            if refresh_frequency.isdigit():
+                delta = int(refresh_frequency)
+            else:
+                delta = 24
+
+        if refresh_unit == 'minutes':
+            next_run = datetime.utcnow() + timedelta(minutes=delta)
+        elif refresh_unit == 'hours':
+            next_run = datetime.utcnow() + timedelta(hours=delta)
+        elif refresh_unit == 'days':
+            next_run = datetime.utcnow() + timedelta(days=delta)
+        else:
+            next_run = datetime.utcnow() + timedelta(days=delta)  # default to days
+
+        return delta, next_run
+
     def write_entry_config(self, group_key, owner_user_id, config_status, fields, included_uris, excluded_uris,
                            template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream):
 
