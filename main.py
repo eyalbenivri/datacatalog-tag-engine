@@ -385,7 +385,7 @@ def choose_action():
     template_id = request.args.get('template_id')
     project_id = request.args.get('project_id')
     region = request.args.get('region')
-    group_key = request.args.get('group')
+    group_key = request.args.get('group_key')
     group = next(group for group in session["groups"] if group["group_key"] == group_key)
 
     dcu = dc.DataCatalogUtils(session['user_email'], template_id, project_id, region)
