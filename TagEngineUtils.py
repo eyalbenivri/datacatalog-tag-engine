@@ -525,19 +525,15 @@ class TagEngineUtils:
 
         return config_uuid, included_uris_hash
 
-    def validate_auto_refresh(self, refresh_frequency, refresh_unit):
+    @staticmethod
+    def validate_auto_refresh(refresh_frequency, refresh_unit):
+        delta = 24
+        if type(refresh_frequency) is str and refresh_frequency.isdigit():
+            delta = int(refresh_frequency)
 
         if type(refresh_frequency) is int:
             if refresh_frequency > 0:
                 delta = refresh_frequency
-            else:
-                delta = 24
-
-        if type(refresh_frequency) is str:
-            if refresh_frequency.isdigit():
-                delta = int(refresh_frequency)
-            else:
-                delta = 24
 
         if refresh_unit == 'minutes':
             next_run = datetime.utcnow() + timedelta(minutes=delta)

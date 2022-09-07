@@ -34,7 +34,7 @@
 		<span style="color:#0b5394;">Tag history option</span>: {{ tag_history }}<br>
 		<span style="color:#0b5394;">Tag stream option</span>: {{ tag_stream }}<br>
 	  </p></p>
-	  <p><a href="{{ url_for('choose_action',template_id=target_template_id,project_id=target_template_project,region=target_template_region) }}">Create more configs</a>&nbsp;&nbsp;<a href="/">Switch tag templates / Homepage</a></p>
+	  <p><a href="{{ url_for('choose_action',template_id=target_template_id,project_id=target_template_project,region=target_template_region,group_key=group['group_key']) }}">Create more configs</a>&nbsp;&nbsp;<a href="/">Switch tag templates / Homepage</a></p>
      </div>
    </div>
  </body>

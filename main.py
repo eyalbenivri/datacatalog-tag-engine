@@ -409,7 +409,7 @@ def view_configs():
     template_id = request.args.get('template_id')
     project_id = request.args.get('project_id')
     region = request.args.get('region')
-    group_key = request.args.get('group')
+    group_key = request.args.get('group_key')
     # TODO: Use method
     group = next(group for group in session["groups"] if group["group_key"] == group_key)
 
@@ -424,7 +424,7 @@ def view_configs():
     history_enabled, history_settings = teu.read_tag_history_settings(group)
     stream_enabled, stream_settings = teu.read_tag_stream_settings(group)
 
-    configs = teu.read_configs(template_id, project_id, region)
+    configs = teu.read_configs(group['group_key'], template_id, project_id, region)
 
     # print('configs: ', configs)
 
