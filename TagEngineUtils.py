@@ -53,7 +53,7 @@ class TagEngineUtils:
 
         return exists, settings
 
-    def write_default_settings(self, user_id, template_id, project_id, region, group):
+    def write_default_settings(self, user_id: str, template_id: str, project_id: str, region: str, group_key: str):
         report_settings = self.db.collection('settings')
         doc_ref = report_settings.document(f'default_tag_template_{user_id}')
         doc_ref.set({
@@ -61,7 +61,7 @@ class TagEngineUtils:
             'project_id': project_id,
             'region': region,
             'user_id': user_id,
-            'group': group,
+            'group_key': group_key,
         })
         print('Saved default settings.')
 

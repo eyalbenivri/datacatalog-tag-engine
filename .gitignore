@@ -7,3 +7,5 @@ docs/*
 .idea
 .envrc
 venv
+.fleet/
+__pycache__/

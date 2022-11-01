@@ -152,7 +152,7 @@ def default_settings(saved):
         template_id = settings['template_id']
         project_id = settings['project_id']
         region = settings['region']
-        group = settings['group']
+        group = settings['group_key']
     else:
         template_id = ""
         project_id = ""
@@ -223,7 +223,7 @@ def set_default():
     if region == "":
         region = None
     if group is not None or template_id is not None or project_id is not None or region is not None:
-        teu.write_default_settings(session["user_id"], template_id, project_id, region, group)
+        teu.write_default_settings(session["user_id"], template_id, project_id, region, group['group_key'])
 
     return default_settings(1)
 
