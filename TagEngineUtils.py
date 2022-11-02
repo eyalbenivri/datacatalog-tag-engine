@@ -12,19 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import uuid, pytz, os, requests
-import configparser, difflib, hashlib
+import configparser
+import hashlib
+import uuid
 from datetime import datetime
 from datetime import timedelta
-from typing import List, Dict, Callable, Tuple
+from typing import List, Callable, Tuple
 
 import google.api_core.exceptions
-
-import DataCatalogUtils as dc
-import BigQueryUtils as bq
 from google.cloud import bigquery
 from google.cloud import firestore
-import constants
+
+import DataCatalogUtils as dc
+
+from enum import Enum
+
+
+class ConfigStatus(str, Enum):
+    RUNNING = 'RUNNING'
+    PENDING = 'PENDING'
+    INACTIVE = 'INACTIVE'
+    ERROR = "ERROR"
+    ACTIVE = "ACTIVE"
+    PROCESSING_FORMAT = "PROCESSING: {}% complete"
 
 
 class TagEngineUtils:
@@ -70,12 +80,12 @@ class TagEngineUtils:
     # region supporting per-group settings
 
     @staticmethod
-    def __get_key_for_group__(perf: str, group: str):
-        return f'{perf}_{group}'
+    def __get_key_for_group__(perf: str, group_key: str):
+        return f'{perf}_{group_key}'
 
     @staticmethod
     def __map_groups_to_per_group_settings__(method: Callable[[dict], Tuple[bool, dict]], groups: List[dict]) -> \
-            List[Tuple[bool, dict, dict]]:
+        List[Tuple[bool, dict, dict]]:
         return [method(group) + (group,) for group in groups]
 
     def __read_settings_by_group__(self, pref: str, group: dict, enabled_on_exists: bool = False):
@@ -151,7 +161,7 @@ class TagEngineUtils:
 
     def write_coverage_settings(self, group_key: str, user_id, project_ids, datasets, tables):
         report_settings = self.db.collection('settings')
-        doc_ref = report_settings.document(self.__get_key_for_group__('coverage', group))
+        doc_ref = report_settings.document(self.__get_key_for_group__('coverage', group_key))
         doc_ref.set({
             'project_ids': project_ids,
             'excluded_datasets': datasets,
@@ -369,7 +379,7 @@ class TagEngineUtils:
             configs_ref.where('template_uuid', '==', template_uuid)
             .where('included_uris_hash', '==', included_uris_hash)
             .where('config_type', '==', 'STATIC')
-            .where('config_status', '!=', 'INACTIVE')
+            .where('config_status', '!=', ConfigStatus.INACTIVE)
             .where('group_key', '==', group_key)
         )
 
@@ -382,7 +392,7 @@ class TagEngineUtils:
 
                 # update status to INACTIVE 
                 self.db.collection('static_configs').document(config_uuid_match).update({
-                    'config_status': "INACTIVE"
+                    'config_status': ConfigStatus.INACTIVE
                 })
                 # print('Updated config status to INACTIVE.')
 
@@ -454,7 +464,7 @@ class TagEngineUtils:
             configs_ref.where('template_uuid', '==', template_uuid)
             .where('included_uris_hash', '==', included_uris_hash)
             .where('config_type', '==', 'DYNAMIC')
-            .where('config_status', '!=', 'INACTIVE')
+            .where('config_status', '!=', ConfigStatus.INACTIVE)
             .where('group_key', '==', group_key)
         )
 
@@ -467,7 +477,7 @@ class TagEngineUtils:
 
                 # update status to INACTIVE 
                 self.db.collection('dynamic_configs').document(config_uuid_match).update({
-                    'config_status': "INACTIVE"
+                    'config_status': ConfigStatus.INACTIVE
                 })
                 print('Updated status to INACTIVE.')
 
@@ -562,7 +572,7 @@ class TagEngineUtils:
             configs_ref.where('template_uuid', '==', template_uuid)
             .where('included_uris_hash', '==', included_uris_hash)
             .where('config_type', '==', 'ENTRY')
-            .where('config_status', '!=', 'INACTIVE')
+            .where('config_status', '!=', ConfigStatus.INACTIVE)
             .where('group_key', '==', group_key)
         )
 
@@ -575,7 +585,7 @@ class TagEngineUtils:
 
                 # update status to INACTIVE 
                 self.db.collection('entry_configs').document(config_uuid_match).update({
-                    'config_status': "INACTIVE"
+                    'config_status': ConfigStatus.INACTIVE
                 })
                 print('Updated status to INACTIVE.')
 
@@ -647,7 +657,7 @@ class TagEngineUtils:
             configs_ref.where('template_uuid', '==', template_uuid)
             .where('included_uris_hash', '==', included_uris_hash)
             .where('config_type', '==', 'GLOSSARY')
-            .where('config_status', '!=', 'INACTIVE')
+            .where('config_status', '!=', ConfigStatus.INACTIVE)
             .where('group_key', '==', group_key)
         )
 
@@ -660,7 +670,7 @@ class TagEngineUtils:
 
                 # update status to INACTIVE
                 self.db.collection('glossary_configs').document(config_uuid_match).update({
-                    'config_status': "INACTIVE"
+                    'config_status': ConfigStatus.INACTIVE
                 })
                 print('Updated status to INACTIVE.')
 
@@ -736,7 +746,7 @@ class TagEngineUtils:
             configs_ref.where('template_uuid', '==', template_uuid)
             .where('included_uris_hash', '==', included_uris_hash)
             .where('config_type', '==', 'SENSITIVE')
-            .where('config_status', '!=', 'INACTIVE')
+            .where('config_status', '!=', ConfigStatus.INACTIVE)
             .where('group_key', '==', group_key)
         )
 
@@ -749,7 +759,7 @@ class TagEngineUtils:
 
                 # update status to INACTIVE 
                 self.db.collection('sensitive_configs').document(config_uuid_match).update({
-                    'config_status': "INACTIVE"
+                    'config_status': ConfigStatus.INACTIVE
                 })
                 print('Updated status to INACTIVE.')
 
@@ -829,7 +839,7 @@ class TagEngineUtils:
         query = (
             configs_ref.where('source_template_uuid', '==', source_template_uuid)
             .where('target_template_uuid', '==', target_template_uuid)
-            .where('config_status', '!=', 'INACTIVE')
+            .where('config_status', '!=', ConfigStatus.INACTIVE)
             .where('group_key', '==', group_key)
         )
 
@@ -842,7 +852,7 @@ class TagEngineUtils:
 
                 # update status to INACTIVE
                 self.db.collection('restore_configs').document(config_uuid_match).update({
-                    'config_status': "INACTIVE"
+                    'config_status': ConfigStatus.INACTIVE
                 })
                 print('Updated status to INACTIVE.')
 
@@ -883,7 +893,7 @@ class TagEngineUtils:
         query = (
             configs_ref.where('template_uuid', '==', template_uuid)
             .where('metadata_import_location', '==', metadata_import_location)
-            .where('config_status', '!=', 'INACTIVE')
+            .where('config_status', '!=', ConfigStatus.INACTIVE)
             .where('group_key', '==', group_key)
         )
 
@@ -896,7 +906,7 @@ class TagEngineUtils:
 
                 # update status to INACTIVE
                 self.db.collection('import_configs').document(config_uuid_match).update({
-                    'config_status': "INACTIVE"
+                    'config_status': ConfigStatus.INACTIVE
                 })
                 print('Updated status to INACTIVE.')
 
@@ -1005,7 +1015,7 @@ class TagEngineUtils:
                 docs = (
                     configs_ref
                     .where('target_template_uuid', '==', template_uuid)
-                    .where('config_status', '!=', 'INACTIVE')
+                    .where('config_status', '!=', ConfigStatus.INACTIVE)
                     .where('group_key', '==', group_key)
                     .stream()
                 )
@@ -1013,7 +1023,7 @@ class TagEngineUtils:
                 docs = (
                     configs_ref
                     .where('template_uuid', '==', template_uuid)
-                    .where('config_status', '!=', 'INACTIVE')
+                    .where('config_status', '!=', ConfigStatus.INACTIVE)
                     .where('group_key', '==', group_key)
                     .stream()
                 )
@@ -1047,7 +1057,7 @@ class TagEngineUtils:
             config_ref = self.db.collection(coll_name)
             config_ref = config_ref.where("refresh_mode", "==", "AUTO")
             config_ref = config_ref.where("scheduling_status", "==", "READY")
-            config_ref = config_ref.where("config_status", "==", "ACTIVE")
+            config_ref = config_ref.where("config_status", "==", ConfigStatus.ACTIVE)
             config_ref = config_ref.where("next_run", "<=", datetime.utcnow())
 
             config_stream = list(config_ref.stream())
@@ -1073,7 +1083,7 @@ class TagEngineUtils:
                 docs = (
                     config_ref
                     .where('template_uuid', '==', template_uuid)
-                    .where('config_status', '==', 'ACTIVE')
+                    .where('config_status', '==', ConfigStatus.ACTIVE)
                     .where('included_uris', '==', included_uris)
                     .where('group_key', '==', group_key)
                     .stream()
@@ -1082,7 +1092,7 @@ class TagEngineUtils:
                 docs = (
                     config_ref
                     .where('template_uuid', '==', template_uuid)
-                    .where('config_status', '==', 'ACTIVE')
+                    .where('config_status', '==', ConfigStatus.ACTIVE)
                     .where('included_uris_hash', '==', included_uris_hash)
                     .where('group_key', '==', group_key)
                     .stream()
@@ -1101,7 +1111,7 @@ class TagEngineUtils:
 
         coll_name = self.get_config_collection(config_type)
         self.db.collection(coll_name).document(old_config_uuid).update({
-            'config_status': "INACTIVE"
+            'config_status': ConfigStatus.INACTIVE
         })
 
         if config_type == 'STATIC':
@@ -1143,7 +1153,7 @@ class TagEngineUtils:
                                 overwrite):
 
         self.db.collection('sensitive_configs').document(old_config_uuid).update({
-            'config_status': "INACTIVE"
+            'config_status': ConfigStatus.INACTIVE
         })
 
         config = self.read_config(old_config_uuid, 'SENSITIVE')
@@ -1164,7 +1174,7 @@ class TagEngineUtils:
                               metadata_export_location, tag_history, tag_stream, overwrite=False):
 
         self.db.collection('restore_configs').document(old_config_uuid).update({
-            'config_status': "INACTIVE"
+            'config_status': ConfigStatus.INACTIVE
         })
 
         new_config_uuid = self.write_restore_config(group_key, owner_user_id, config_status, source_template_uuid,
@@ -1181,5 +1191,5 @@ if __name__ == '__main__':
     config = configparser.ConfigParser()
     config.read("tagengine.ini")
 
-    te = TagEngineUtils();
-    te.write_template('quality_template', config['DEFAULT']['PROJECT'], config['DEFAULT']['REGION'], 'ACTIVE')
+    te = TagEngineUtils()
+    te.write_template('quality_template', config['DEFAULT']['PROJECT'], config['DEFAULT']['REGION'], ConfigStatus.ACTIVE)

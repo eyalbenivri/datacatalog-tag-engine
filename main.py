@@ -57,6 +57,7 @@ logging.config.dictConfig(
 
 app = Flask(__name__)
 app.secret_key = config["DEFAULT"].get("APP_SECRET_KEY")
+
 teu = te.TagEngineUtils()
 
 data_domains = list(map(lambda x: x.strip(), config["DEFAULT"].get("DATA_DOMAINS", "").split(",")))
@@ -752,7 +753,7 @@ def process_update_static_config():
 
         template_exists, template_uuid = teu.read_tag_template(template_id, project_id, region, group['group_key'])
         new_config_uuid = teu.update_config(group['group_key'], session['user_id'], old_config_uuid, 'STATIC',
-                                            'PENDING',
+                                            te.ConfigStatus.PENDING,
                                             fields, included_uris, excluded_uris, template_uuid, refresh_mode,
                                             refresh_frequency, refresh_unit, tag_history, tag_stream, overwrite)
 
@@ -849,7 +850,7 @@ def process_update_dynamic_config():
 
         template_exists, template_uuid = teu.read_tag_template(template_id, project_id, region, group['group_key'])
         new_config_uuid = teu.update_config(group['group_key'], session['user_id'], old_config_uuid, 'DYNAMIC',
-                                            'PENDING',
+                                            te.ConfigStatus.PENDING,
                                             fields, included_uris, excluded_uris, template_uuid, refresh_mode,
                                             refresh_frequency, refresh_unit, tag_history, tag_stream)
 
@@ -934,7 +935,8 @@ def process_update_entry_config():
                 tag_stream = True
 
         template_exists, template_uuid = teu.read_tag_template(template_id, project_id, region, group['group_key'])
-        new_config_uuid = teu.update_config(group['group_key'], session['user_id'], old_config_uuid, 'ENTRY', 'PENDING',
+        new_config_uuid = teu.update_config(group['group_key'], session['user_id'], old_config_uuid, 'ENTRY',
+                                            te.ConfigStatus.PENDING,
                                             fields, included_uris, excluded_uris, template_uuid, refresh_mode,
                                             refresh_frequency, refresh_unit, tag_history, tag_stream)
 
@@ -1025,7 +1027,8 @@ def process_update_glossary_config():
 
         template_exists, template_uuid = teu.read_tag_template(group['group_key'], template_id, project_id, region)
         new_config_uuid = teu.update_config(group['group_key'], session['user_id'], old_config_uuid, 'GLOSSARY',
-                                            'PENDING', fields, included_uris, excluded_uris, template_uuid,
+                                            te.ConfigStatus.PENDING, fields, included_uris, excluded_uris,
+                                            template_uuid,
                                             refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream,
                                             overwrite, mapping_table)
 
@@ -2581,7 +2584,7 @@ def scheduled_auto_updates():
             print('ready config: ', config_uuid, ', ', config_type)
 
             if isinstance(config_uuid, str):
-                teu.update_config_status(config_uuid, 'PENDING')
+                teu.update_config_status(config_uuid, config_type, te.ConfigStatus.PENDING)
                 teu.increment_version_next_run(config_uuid, config_type)
                 job_uuid = jm.create_job(config_uuid, config_type)
                 jobs.append(job_uuid)
@@ -2631,8 +2634,7 @@ def _split_work():
 
         for bkp_file in bkp_files:
             extracted_tags.append(bfp.BackupFileParser.extract_tags(config.get('source_template_id'),
-                                                                    config.get('source_template_project'), \
-                                                                    bkp_file))
+                                                                    config.get('source_template_project'), bkp_file))
 
     if config_type == 'IMPORT':
         csv_files = list(res.Resources.get_resources(config.get('metadata_import_location'), None))
@@ -2654,7 +2656,7 @@ def _split_work():
         jm.update_job_running(job_uuid)
         tm.create_tag_extract_tasks(job_uuid, config_uuid, config_type, extracted_tags)
 
-    teu.update_config_status(config_uuid, config_type, 'RUNNING')
+    teu.update_config_status(config_uuid, config_type, te.ConfigStatus.RUNNING)
 
     resp = jsonify(success=True)
     return resp
@@ -2788,4 +2790,4 @@ def server_error(e):
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host=os.environ.get("HOST"), port=int(os.environ.get("PORT", "5000")))
