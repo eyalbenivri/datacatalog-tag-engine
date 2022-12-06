@@ -29,11 +29,12 @@ from enum import Enum
 
 
 class ConfigStatus(str, Enum):
-    RUNNING = 'RUNNING'
+    UNVERIFIED = "UNVERIFIED"
     PENDING = 'PENDING'
+    ACTIVE = "ACTIVE"
+    RUNNING = 'RUNNING'
     INACTIVE = 'INACTIVE'
     ERROR = "ERROR"
-    ACTIVE = "ACTIVE"
     PROCESSING_FORMAT = "PROCESSING: {}% complete"
 
 
@@ -378,6 +379,7 @@ class TagEngineUtils:
         query = (
             configs_ref.where('template_uuid', '==', template_uuid)
             .where('included_uris_hash', '==', included_uris_hash)
+            # TODO: do we still need this, now that the collections are seperated?
             .where('config_type', '==', 'STATIC')
             .where('config_status', '!=', ConfigStatus.INACTIVE)
             .where('group_key', '==', group_key)

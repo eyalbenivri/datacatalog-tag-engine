@@ -63,7 +63,8 @@ teu = te.TagEngineUtils()
 data_domains = list(map(lambda x: x.strip(), config["DEFAULT"].get("DATA_DOMAINS", "").split(",")))
 user_utils = uu.UserUtils(data_domains, config["DEFAULT"].get("ADMIN_EMAIL"), config["DEFAULT"].get("DOMAIN"))
 
-# handles create requests from API and on-demand update requests from API (i.e. config contains refresh_mode = ON_DEMAND)
+# handles create requests from API and on-demand update requests from API (i.e. config contains refresh_mode =
+# ON_DEMAND)
 jm = jobm.JobManager(config['DEFAULT']['TAG_ENGINE_PROJECT'], config['DEFAULT']['QUEUE_REGION'],
                      config['DEFAULT']['INJECTOR_QUEUE'], "/_split_work")
 tm = taskm.TaskManager(config['DEFAULT']['TAG_ENGINE_PROJECT'], config['DEFAULT']['QUEUE_REGION'],
@@ -344,6 +345,7 @@ def coverage_details(res):
 
     project_id, resource, *rest = res.split('.')
 
+    # TODO: What is this `read_configs_on_res`? I don't see the method implementation
     configs = teu.read_configs_on_res(res)
     return render_template(
         'view_tags_on_res.html',
@@ -359,8 +361,7 @@ def search_template():
     project_id = request.form['project_id']
     region = request.form['region']
     group_key = request.form['group_key']
-    # TODO: Use method
-    group = next(group for group in session["groups"] if group["group_key"] == group_key)
+    group = get_group_from_group_key(group_key, session['groups'])
 
     dcu = dc.DataCatalogUtils(session["user_email"], template_id, project_id, region)
     try:
@@ -449,10 +450,10 @@ def display_selected_action():
     action = request.form['action']
     group = get_group_from_group_key(request.form['group_key'], session['groups'])
 
-    print("template_id: " + str(template_id))
-    print("project_id: " + str(project_id))
-    print("region: " + str(region))
-    print("action: " + str(action))
+    # print("template_id: " + str(template_id))
+    # print("project_id: " + str(project_id))
+    # print("region: " + str(region))
+    # print("action: " + str(action))
 
     dcu = dc.DataCatalogUtils(session['user_email'], template_id, project_id, region)
     template_fields = dcu.get_template()
@@ -570,11 +571,11 @@ def update_config():
     # print("config_uuid: " + str(config_uuid))
     # print("config_type: " + str(config_type))
 
-    config = teu.read_config(config_uuid, config_type)
-    if config['group_key'] != group['group_key']:
+    tag_config = teu.read_config(config_uuid, config_type)
+    if tag_config['group_key'] != group['group_key']:
         return render_template('error.html', message=f"Looks like the group you've chosen ({group['data_domain']}) "
                                                      f"does not have permissions to change this configuration.")
-    print("config: " + str(config))
+    print("config: " + str(tag_config))
 
     dcu = dc.DataCatalogUtils(session['user_email'], template_id, project_id, region)
     template_fields = dcu.get_template()
@@ -607,7 +608,7 @@ def update_config():
             project_id=project_id,
             region=region,
             fields=template_fields,
-            config=config,
+            config=tag_config,
             group=group,
             current_time=datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
             display_tag_history_option=tag_history,
@@ -622,7 +623,7 @@ def update_config():
             project_id=project_id,
             region=region,
             fields=template_fields,
-            config=config,
+            config=tag_config,
             display_tag_history_option=tag_history,
             display_tag_stream_option=tag_stream)
 
@@ -635,7 +636,7 @@ def update_config():
             project_id=project_id,
             region=region,
             fields=template_fields,
-            config=config,
+            config=tag_config,
             display_tag_history_option=tag_history,
             display_tag_stream_option=tag_stream)
 
@@ -648,7 +649,7 @@ def update_config():
             project_id=project_id,
             region=region,
             fields=template_fields,
-            config=config,
+            config=tag_config,
             display_tag_history_option=tag_history,
             display_tag_stream_option=tag_stream)
 
@@ -661,7 +662,7 @@ def update_config():
             project_id=project_id,
             region=region,
             fields=template_fields,
-            config=config,
+            config=tag_config,
             display_tag_history_option=tag_history,
             display_tag_stream_option=tag_stream)
 
@@ -673,7 +674,7 @@ def update_config():
             template_id=template_id,
             project_id=project_id,
             region=region,
-            config=config,
+            config=tag_config,
             display_tag_history_option=tag_history,
             display_tag_stream_option=tag_stream)
     # [END render_template]
@@ -825,8 +826,7 @@ def process_update_dynamic_config():
                 is_required = template_field['is_required']
 
                 field = {'field_id': selected_field, 'query_expression': query_expression,
-                         'field_type': selected_field_type, \
-                         'is_required': is_required}
+                         'field_type': selected_field_type, 'is_required': is_required}
                 fields.append(field)
                 break
 
@@ -948,7 +948,7 @@ def process_update_entry_config():
     template_fields = dcu.get_template()
     # print('template_fields: ' + str(template_fields))
 
-    configs = teu.read_configs(template_id, project_id, region)
+    configs = teu.read_configs(group['group_key'], template_id, project_id, region)
 
     # [END process_update_dynamic_config]
     # [START render_template]
@@ -1040,7 +1040,7 @@ def process_update_glossary_config():
     template_fields = dcu.get_template()
     # print('template_fields: ' + str(template_fields))
 
-    configs = teu.read_configs(template_id, project_id, region)
+    configs = teu.read_configs(group['group_key'], template_id, project_id, region)
 
     # [END process_update_dynamic_config]
     # [START render_template]
@@ -1110,7 +1110,8 @@ def process_update_sensitive_config():
         template_exists, template_uuid = teu.read_tag_template(template_id, project_id, region, group['group_key'])
 
         new_config_uuid = teu.update_sensitive_config(group['group_key'], session['user_id'], old_config_uuid,
-                                                      'PENDING', dlp_dataset, mapping_table, included_uris,
+                                                      te.ConfigStatus.PENDING, dlp_dataset, mapping_table,
+                                                      included_uris,
                                                       excluded_uris, create_policy_tags, taxonomy_id, template_uuid,
                                                       refresh_mode, refresh_frequency, refresh_unit, tag_history,
                                                       tag_stream, overwrite)
@@ -1190,7 +1191,8 @@ def process_update_restore_config():
         template_exists, target_template_uuid = teu.read_tag_template(target_template_id, target_template_project,
                                                                       target_template_region, group['group_key'])
 
-        new_config_uuid = teu.update_restore_config(group['group_key'], session['user_id'], config_uuid, 'PENDING',
+        new_config_uuid = teu.update_restore_config(group['group_key'], session['user_id'], config_uuid,
+                                                    te.ConfigStatus.PENDING,
                                                     source_template_uuid, source_template_id, source_template_project,
                                                     source_template_region, target_template_uuid, target_template_id,
                                                     target_template_project, target_template_region,
@@ -1233,8 +1235,8 @@ def process_static_config():
     action = request.form['action']
     group = get_group_from_group_key(request.form['group_key'], session['groups'])
 
-    print('included_uris: ' + included_uris)
-    print('excluded_uris: ' + excluded_uris)
+    # print('included_uris: ' + included_uris)
+    # print('excluded_uris: ' + excluded_uris)
 
     dcu = dc.DataCatalogUtils(session['user_email'], template_id, project_id, region)
     template = dcu.get_template()
@@ -1302,8 +1304,9 @@ def process_static_config():
             tag_stream_enabled = "ON"
 
     template_uuid = teu.write_tag_template(group['group_key'], template_id, project_id, region)
-    config_uuid, included_uris_hash = teu.write_static_config(group['group_key'], session['user_id'], 'PENDING', fields,
-                                                              included_uris, excluded_uris, template_uuid, refresh_mode,
+    config_uuid, included_uris_hash = teu.write_static_config(group['group_key'], session['user_id'],
+                                                              te.ConfigStatus.PENDING, fields, included_uris,
+                                                              excluded_uris, template_uuid, refresh_mode,
                                                               refresh_frequency, refresh_unit, tag_history_option,
                                                               tag_stream_option)
     job_uuid = None
@@ -1383,8 +1386,7 @@ def process_dynamic_config():
 
             is_required = template_field['is_required']
             field = {'field_id': selected_field, 'query_expression': query_expression,
-                     'field_type': selected_field_type, \
-                     'is_required': is_required}
+                     'field_type': selected_field_type, 'is_required': is_required}
             fields.append(field)
             break
 
@@ -1411,7 +1413,8 @@ def process_dynamic_config():
             tag_stream_enabled = "ON"
 
     template_uuid = teu.write_tag_template(group['group_key'], template_id, project_id, region)
-    config_uuid, included_uris_hash = teu.write_dynamic_config(group['group_key'], session['user_id'], 'PENDING',
+    config_uuid, included_uris_hash = teu.write_dynamic_config(group['group_key'], session['user_id'],
+                                                               te.ConfigStatus.PENDING,
                                                                fields,
                                                                included_uris, excluded_uris, template_uuid,
                                                                refresh_mode,
@@ -1520,7 +1523,8 @@ def process_entry_config():
             tag_stream_enabled = "ON"
 
     template_uuid = teu.write_tag_template(group['group_key'], template_id, project_id, region)
-    config_uuid, included_uris_hash = teu.write_entry_config(group['group_key'], session['user_id'], 'PENDING', fields,
+    config_uuid, included_uris_hash = teu.write_entry_config(group['group_key'], session['user_id'],
+                                                             te.ConfigStatus.PENDING, fields,
                                                              included_uris, excluded_uris, template_uuid, refresh_mode,
                                                              refresh_frequency, refresh_unit, tag_history_option,
                                                              tag_stream_option)
@@ -1631,11 +1635,11 @@ def process_glossary_config():
 
     template_uuid = teu.write_tag_template(group['group_key'], template_id, project_id, region)
 
-    config_uuid, included_uris_hash = teu.write_glossary_config(group['group_key'], session['user_id'], 'PENDING',
-                                                                fields, mapping_table, included_uris, excluded_uris,
-                                                                template_uuid, refresh_mode, refresh_frequency,
-                                                                refresh_unit, tag_history_option, tag_stream_option,
-                                                                overwrite)
+    config_uuid, included_uris_hash = teu.write_glossary_config(group['group_key'], session['user_id'],
+                                                                te.ConfigStatus.PENDING, fields, mapping_table,
+                                                                included_uris, excluded_uris, template_uuid,
+                                                                refresh_mode, refresh_frequency, refresh_unit,
+                                                                tag_history_option, tag_stream_option, overwrite)
     if isinstance(config_uuid, str):
         job_uuid = jm.create_job(config_uuid, 'GLOSSARY')
     else:
@@ -1756,11 +1760,12 @@ def process_sensitive_config():
 
     template_uuid = teu.write_tag_template(group['group_key'], template_id, project_id, region)
 
-    config_uuid, included_uris_hash = teu.write_sensitive_config(group['group_key'], session['user_id'], 'PENDING',
-                                                                 fields, dlp_dataset, mapping_table, included_uris,
-                                                                 excluded_uris, create_policy_tags, taxonomy_id,
-                                                                 template_uuid, refresh_mode, refresh_frequency,
-                                                                 refresh_unit, tag_history_option, tag_stream_option,
+    config_uuid, included_uris_hash = teu.write_sensitive_config(group['group_key'], session['user_id'],
+                                                                 te.ConfigStatus.PENDING, fields, dlp_dataset,
+                                                                 mapping_table, included_uris, excluded_uris,
+                                                                 create_policy_tags, taxonomy_id, template_uuid,
+                                                                 refresh_mode, refresh_frequency, refresh_unit,
+                                                                 tag_history_option, tag_stream_option,
                                                                  overwrite)
     if isinstance(config_uuid, str):
         job_uuid = jm.create_job(config_uuid, 'SENSITIVE')
@@ -1855,11 +1860,11 @@ def process_restore_config():
 
     overwrite = True
 
-    config_uuid = teu.write_restore_config(group['group_key'], session['user_id'], 'PENDING', source_template_uuid,
-                                           source_template_id,
-                                           source_template_project, source_template_region, target_template_uuid,
-                                           target_template_id, target_template_project, target_template_region,
-                                           metadata_export_location, tag_history_option, tag_stream_option, overwrite)
+    config_uuid = teu.write_restore_config(group['group_key'], session['user_id'], te.ConfigStatus.PENDING,
+                                           source_template_uuid, source_template_id, source_template_project,
+                                           source_template_region, target_template_uuid, target_template_id,
+                                           target_template_project, target_template_region, metadata_export_location,
+                                           tag_history_option, tag_stream_option, overwrite)
 
     job_uuid = None
     if isinstance(config_uuid, str):
@@ -1939,7 +1944,8 @@ def process_import_config():
 
     overwrite = True
 
-    config_uuid = teu.write_import_config(group['group_key'], session['user_id'], 'PENDING', template_uuid, template_id,
+    config_uuid = teu.write_import_config(group['group_key'], session['user_id'], te.ConfigStatus.PENDING,
+                                          template_uuid, template_id,
                                           template_project, template_region, metadata_import_location,
                                           tag_history_option, tag_stream_option, overwrite)
 
@@ -2044,7 +2050,8 @@ def dynamic_create():
     tag_history = json['tag_history']
     tag_stream = json['tag_stream']
 
-    config_uuid, included_uris_hash = teu.write_dynamic_config(group['group_key'], session['user_id'], 'PENDING',
+    config_uuid, included_uris_hash = teu.write_dynamic_config(group['group_key'], session['user_id'],
+                                                               te.ConfigStatus.PENDING,
                                                                fields,
                                                                included_uris, excluded_uris, template_uuid,
                                                                refresh_mode,
@@ -2105,7 +2112,8 @@ def static_create():
     # since we are creating a new config, we are overwriting any previously created tags
     overwrite = True
 
-    config_uuid, included_uris_hash = teu.write_static_config(group['group_key'], session['user_id'], 'PENDING', fields,
+    config_uuid, included_uris_hash = teu.write_static_config(group['group_key'], session['user_id'],
+                                                              te.ConfigStatus.PENDING, fields,
                                                               included_uris, excluded_uris, template_uuid, refresh_mode,
                                                               refresh_frequency, refresh_unit, tag_history, tag_stream,
                                                               overwrite)
@@ -2167,7 +2175,8 @@ def entry_create():
     tag_history = json['tag_history']
     tag_stream = json['tag_stream']
 
-    config_uuid, included_uris_hash = teu.write_entry_config(group['group_key'], session['user_id'], 'PENDING', fields,
+    config_uuid, included_uris_hash = teu.write_entry_config(group['group_key'], session['user_id'],
+                                                             te.ConfigStatus.PENDING, fields,
                                                              included_uris, excluded_uris, template_uuid, refresh_mode,
                                                              refresh_frequency, refresh_unit, tag_history, tag_stream)
 
@@ -2237,7 +2246,8 @@ def glossary_create():
     tag_stream = json['tag_stream']
     overwrite = True
 
-    config_uuid, included_uris_hash = teu.write_glossary_config(group['group_key'], session['user_id'], 'PENDING',
+    config_uuid, included_uris_hash = teu.write_glossary_config(group['group_key'], session['user_id'],
+                                                                te.ConfigStatus.PENDING,
                                                                 fields, mapping_table, included_uris, excluded_uris,
                                                                 template_uuid, refresh_mode, refresh_frequency,
                                                                 refresh_unit, tag_history, tag_stream, overwrite)
@@ -2339,7 +2349,8 @@ def sensitive_create():
     tag_stream = json['tag_stream']
     overwrite = True
 
-    config_uuid, included_uris_hash = teu.write_sensitive_config(group['group_key'], session['user_id'], 'PENDING',
+    config_uuid, included_uris_hash = teu.write_sensitive_config(group['group_key'], session['user_id'],
+                                                                 te.ConfigStatus.PENDING,
                                                                  fields, dlp_dataset, mapping_table, included_uris,
                                                                  excluded_uris, create_policy_tags, taxonomy_id,
                                                                  template_uuid, refresh_mode, refresh_frequency,
@@ -2409,7 +2420,8 @@ def restore_create():
     tag_stream = json['tag_stream']
     overwrite = True
 
-    config_uuid = teu.write_restore_config(group['group_key'], session['user_id'], 'PENDING', source_template_uuid,
+    config_uuid = teu.write_restore_config(group['group_key'], session['user_id'], te.ConfigStatus.PENDING,
+                                           source_template_uuid,
                                            source_template_id, source_template_project, source_template_region,
                                            target_template_uuid, target_template_id, target_template_project,
                                            target_template_region, metadata_export_location, tag_history, tag_stream,
@@ -2454,7 +2466,8 @@ def import_create():
     tag_stream = json['tag_stream']
     overwrite = True
 
-    config_uuid = teu.write_import_config(group['group_key'], session['user_id'], 'PENDING', template_uuid, template_id,
+    config_uuid = teu.write_import_config(group['group_key'], session['user_id'], te.ConfigStatus.PENDING,
+                                          template_uuid, template_id,
                                           template_project, template_region, metadata_import_location, tag_history,
                                           tag_stream, overwrite)
 
@@ -2753,7 +2766,7 @@ def _run_task():
     is_success, is_failed, pct_complete = jm.calculate_job_completion(job_uuid)
 
     if pct_complete == 100 and is_success:
-        teu.update_config_status(config_uuid, config_type, 'ACTIVE')
+        teu.update_config_status(config_uuid, config_type, te.ConfigStatus.ACTIVE)
         teu.update_scheduling_status(config_uuid, config_type, 'READY')
         teu.update_overwrite_flag(config_uuid, config_type)
         resp = jsonify(success=True)
