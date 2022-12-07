@@ -298,8 +298,10 @@ class TagEngineUtils:
             next_run = datetime.utcnow() + timedelta(minutes=delta)
         elif unit == 'hours':
             next_run = datetime.utcnow() + timedelta(hours=delta)
-        if unit == 'days':
+        elif unit == 'days':
             next_run = datetime.utcnow() + timedelta(days=delta)
+        else:
+            raise Exception(f"Invalid unit detected {unit}")
 
         coll_name = self.get_config_collection(config_type)
         self.db.collection(coll_name).document(config_uuid).update({
@@ -417,9 +419,8 @@ class TagEngineUtils:
                 'group_key': group_key,
                 'owner_user_id': owner_user_id,
                 'overwrite': overwrite,
-                'scheduling_status': 'PENDING',
         }
-        
+
         if refresh_mode == 'AUTO':
             delta, next_run = self.validate_auto_refresh(refresh_frequency, refresh_unit)
             doc = doc.update({
@@ -465,52 +466,33 @@ class TagEngineUtils:
         config_uuid = uuid.uuid1().hex
         config = self.db.collection('dynamic_configs')
         doc_ref = config.document(config_uuid)
-
+        doc = {
+            'config_uuid': config_uuid,
+            'config_type': 'DYNAMIC',
+            'config_status': config_status,
+            'creation_time': datetime.utcnow(),
+            'fields': fields,
+            'included_uris': included_uris,
+            'included_uris_hash': included_uris_hash,
+            'excluded_uris': excluded_uris,
+            'template_uuid': template_uuid,
+            'refresh_mode': refresh_mode,  # ON_DEMAND refresh mode
+            'refresh_frequency': 0,
+            'tag_history': tag_history,
+            'tag_stream': tag_stream,
+            'group_key': group_key,
+            'owner_user_id': owner_user_id,
+            'version': 1,
+            'scheduling_status': 'PENDING',
+        }
         if refresh_mode == 'AUTO':
-
             delta, next_run = self.validate_auto_refresh(refresh_frequency, refresh_unit)
-
-            doc_ref.set({
-                'config_uuid': config_uuid,
-                'config_type': 'DYNAMIC',
-                'config_status': config_status,
-                'creation_time': datetime.utcnow(),
-                'fields': fields,
-                'included_uris': included_uris,
-                'included_uris_hash': included_uris_hash,
-                'excluded_uris': excluded_uris,
-                'template_uuid': template_uuid,
-                'refresh_mode': refresh_mode,  # AUTO refresh mode
+            doc.update({
                 'refresh_frequency': delta,
                 'refresh_unit': refresh_unit,
-                'tag_history': tag_history,
-                'tag_stream': tag_stream,
-                'scheduling_status': 'PENDING',
                 'next_run': next_run,
-                'group_key': group_key,
-                'owner_user_id': owner_user_id,
-                'version': 1
             })
-
-        else:
-            doc_ref.set({
-                'config_uuid': config_uuid,
-                'config_type': 'DYNAMIC',
-                'config_status': config_status,
-                'creation_time': datetime.utcnow(),
-                'fields': fields,
-                'included_uris': included_uris,
-                'included_uris_hash': included_uris_hash,
-                'excluded_uris': excluded_uris,
-                'template_uuid': template_uuid,
-                'refresh_mode': refresh_mode,  # ON_DEMAND refresh mode
-                'refresh_frequency': 0,
-                'tag_history': tag_history,
-                'tag_stream': tag_stream,
-                'group_key': group_key,
-                'owner_user_id': owner_user_id,
-                'version': 1
-            })
+        doc_ref.set(doc)
 
         print('Created new dynamic config.')
 
@@ -573,52 +555,35 @@ class TagEngineUtils:
         config_uuid = uuid.uuid1().hex
         config = self.db.collection('entry_configs')
         doc_ref = config.document(config_uuid)
+        doc = {
+            'config_uuid': config_uuid,
+            'config_type': 'ENTRY',
+            'config_status': config_status,
+            'creation_time': datetime.utcnow(),
+            'fields': fields,
+            'included_uris': included_uris,
+            'included_uris_hash': included_uris_hash,
+            'excluded_uris': excluded_uris,
+            'template_uuid': template_uuid,
+            'refresh_mode': refresh_mode,  # ON_DEMAND refresh mode
+            'refresh_frequency': 0,
+            'tag_history': tag_history,
+            'tag_stream': tag_stream,
+            'group_key': group_key,
+            'owner_user_id': owner_user_id,
+            'version': 1,
+            'scheduling_status': 'PENDING',
+        }
 
         if refresh_mode == 'AUTO':
-
             delta, next_run = self.validate_auto_refresh(refresh_frequency, refresh_unit)
-
-            doc_ref.set({
-                'config_uuid': config_uuid,
-                'config_type': 'ENTRY',
-                'config_status': config_status,
-                'creation_time': datetime.utcnow(),
-                'fields': fields,
-                'included_uris': included_uris,
-                'included_uris_hash': included_uris_hash,
-                'excluded_uris': excluded_uris,
-                'template_uuid': template_uuid,
+            doc.update({
                 'refresh_mode': refresh_mode,  # AUTO refresh mode
                 'refresh_frequency': delta,
                 'refresh_unit': refresh_unit,
-                'tag_history': tag_history,
-                'tag_stream': tag_stream,
-                'scheduling_status': 'PENDING',
                 'next_run': next_run,
-                'group_key': group_key,
-                'owner_user_id': owner_user_id,
-                'version': 1
             })
-
-        else:
-            doc_ref.set({
-                'config_uuid': config_uuid,
-                'config_type': 'ENTRY',
-                'config_status': config_status,
-                'creation_time': datetime.utcnow(),
-                'fields': fields,
-                'included_uris': included_uris,
-                'included_uris_hash': included_uris_hash,
-                'excluded_uris': excluded_uris,
-                'template_uuid': template_uuid,
-                'refresh_mode': refresh_mode,  # ON_DEMAND refresh mode
-                'refresh_frequency': 0,
-                'tag_history': tag_history,
-                'tag_stream': tag_stream,
-                'group_key': group_key,
-                'owner_user_id': owner_user_id,
-                'version': 1
-            })
+        doc_ref.set(doc)
 
         print('Created new entry config.')
 
@@ -658,7 +623,26 @@ class TagEngineUtils:
         config_uuid = uuid.uuid1().hex
         config = self.db.collection('glossary_configs')
         doc_ref = config.document(config_uuid)
-
+        doc = {
+            'config_uuid': config_uuid,
+            'config_type': 'GLOSSARY',
+            'config_status': config_status,
+            'creation_time': datetime.utcnow(),
+            'fields': fields,
+            'mapping_table': mapping_table,
+            'included_uris': included_uris,
+            'included_uris_hash': included_uris_hash,
+            'excluded_uris': excluded_uris,
+            'template_uuid': template_uuid,
+            'refresh_mode': refresh_mode,  # ON_DEMAND refresh mode
+            'refresh_frequency': 0,
+            'tag_history': tag_history,
+            'tag_stream': tag_stream,
+            'version': 1,
+            'group_key': group_key,
+            'owner_user_id': owner_user_id,
+            'overwrite': overwrite,
+        }
         if refresh_mode == 'AUTO':
 
             delta, next_run = self.validate_auto_refresh(refresh_frequency, refresh_unit)
@@ -689,24 +673,7 @@ class TagEngineUtils:
 
         else:
             doc_ref.set({
-                'config_uuid': config_uuid,
-                'config_type': 'GLOSSARY',
-                'config_status': config_status,
-                'creation_time': datetime.utcnow(),
-                'fields': fields,
-                'mapping_table': mapping_table,
-                'included_uris': included_uris,
-                'included_uris_hash': included_uris_hash,
-                'excluded_uris': excluded_uris,
-                'template_uuid': template_uuid,
-                'refresh_mode': refresh_mode,  # ON_DEMAND refresh mode
-                'refresh_frequency': 0,
-                'tag_history': tag_history,
-                'tag_stream': tag_stream,
-                'version': 1,
-                'group_key': group_key,
-                'owner_user_id': owner_user_id,
-                'overwrite': overwrite
+
             })
 
         print('Created new glossary config.')
