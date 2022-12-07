@@ -399,41 +399,7 @@ class TagEngineUtils:
                 # print('Updated config status to INACTIVE.')
 
         config_uuid = uuid.uuid1().hex
-
-        if refresh_mode == 'AUTO':
-
-            delta, next_run = self.validate_auto_refresh(refresh_frequency, refresh_unit)
-
-            config = self.db.collection('static_configs')
-            doc_ref = config.document(config_uuid)
-            doc_ref.set({
-                'config_uuid': config_uuid,
-                'config_type': 'STATIC',
-                'config_status': config_status,
-                'creation_time': datetime.utcnow(),
-                'fields': fields,
-                'included_uris': included_uris,
-                'included_uris_hash': included_uris_hash,
-                'excluded_uris': excluded_uris,
-                'template_uuid': template_uuid,
-                'refresh_mode': refresh_mode,  # AUTO refresh mode
-                'refresh_frequency': delta,
-                'refresh_unit': refresh_unit,
-                'tag_history': tag_history,
-                'tag_stream': tag_stream,
-                'scheduling_status': 'PENDING',
-                'next_run': next_run,
-                'version': 1,
-                'group_key': group_key,
-                'owner_user_id': owner_user_id,
-                'overwrite': overwrite
-            })
-
-        else:
-
-            config = self.db.collection('static_configs')
-            doc_ref = config.document(config_uuid)
-            doc_ref.set({
+        doc = {
                 'config_uuid': config_uuid,
                 'config_type': 'STATIC',
                 'config_status': config_status,
@@ -450,8 +416,21 @@ class TagEngineUtils:
                 'version': 1,
                 'group_key': group_key,
                 'owner_user_id': owner_user_id,
-                'overwrite': overwrite
+                'overwrite': overwrite,
+                'scheduling_status': 'PENDING',
+        }
+        
+        if refresh_mode == 'AUTO':
+            delta, next_run = self.validate_auto_refresh(refresh_frequency, refresh_unit)
+            doc = doc.update({
+                'refresh_frequency': delta,
+                'refresh_unit': refresh_unit,
+                'next_run': next_run,
             })
+
+        config = self.db.collection('static_configs')
+        doc_ref = config.document(config_uuid)
+        doc_ref.set(doc)
 
         return config_uuid, included_uris_hash
 
