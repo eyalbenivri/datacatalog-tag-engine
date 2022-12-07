@@ -86,7 +86,7 @@ class TagEngineUtils:
 
     @staticmethod
     def __map_groups_to_per_group_settings__(method: Callable[[dict], Tuple[bool, dict]], groups: List[dict]) -> \
-        List[Tuple[bool, dict, dict]]:
+            List[Tuple[bool, dict, dict]]:
         return [method(group) + (group,) for group in groups]
 
     def __read_settings_by_group__(self, pref: str, group: dict, enabled_on_exists: bool = False):
@@ -369,106 +369,38 @@ class TagEngineUtils:
 
         return template_uuid
 
-    def write_static_config(self, group_key, owner_user_id, config_status, fields, included_uris, excluded_uris,
-                            template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream,
-                            overwrite=False):
-
-        # hash the included_uris string
+    def __write_config__(self, config_type, group_key, owner_user_id, config_status, fields, included_uris,
+                         excluded_uris, template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history,
+                         tag_stream, **kwargs):
         included_uris_hash = hashlib.md5(included_uris.encode()).hexdigest()
-
-        # check to see if this static config already exists
-        configs_ref = self.db.collection('static_configs')
-        query = (
-            configs_ref.where('template_uuid', '==', template_uuid)
-            .where('included_uris_hash', '==', included_uris_hash)
-            # TODO: do we still need this, now that the collections are seperated?
-            .where('config_type', '==', 'STATIC')
-            .where('config_status', '!=', ConfigStatus.INACTIVE)
-            .where('group_key', '==', group_key)
-        )
-
-        matches = query.get()
-
-        for match in matches:
-            if match.exists:
-                config_uuid_match = match.id
-                # print('Static config already exists. Config_uuid: ' + str(config_uuid_match))
-
-                # update status to INACTIVE 
-                self.db.collection('static_configs').document(config_uuid_match).update({
-                    'config_status': ConfigStatus.INACTIVE
-                })
-                # print('Updated config status to INACTIVE.')
-
-        config_uuid = uuid.uuid1().hex
-        doc = {
-                'config_uuid': config_uuid,
-                'config_type': 'STATIC',
-                'config_status': config_status,
-                'creation_time': datetime.utcnow(),
-                'fields': fields,
-                'included_uris': included_uris,
-                'included_uris_hash': included_uris_hash,
-                'excluded_uris': excluded_uris,
-                'template_uuid': template_uuid,
-                'refresh_mode': refresh_mode,  # ON_DEMAND refresh mode
-                'refresh_frequency': 0,  # N/A
-                'tag_history': tag_history,
-                'tag_stream': tag_stream,
-                'version': 1,
-                'group_key': group_key,
-                'owner_user_id': owner_user_id,
-                'overwrite': overwrite,
-        }
-
-        if refresh_mode == 'AUTO':
-            delta, next_run = self.validate_auto_refresh(refresh_frequency, refresh_unit)
-            doc = doc.update({
-                'refresh_frequency': delta,
-                'refresh_unit': refresh_unit,
-                'next_run': next_run,
-            })
-
-        config = self.db.collection('static_configs')
-        doc_ref = config.document(config_uuid)
-        doc_ref.set(doc)
-
-        return config_uuid, included_uris_hash
-
-    def write_dynamic_config(self, group_key, owner_user_id, config_status, fields, included_uris, excluded_uris,
-                             template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream):
-
-        included_uris_hash = hashlib.md5(included_uris.encode()).hexdigest()
-
+        configs_ref = self.db.collection(config_type)
+        config_type_short = config_type.replace('_configs', '').upper()
         # check to see if this config already exists
-        configs_ref = self.db.collection('dynamic_configs')
         query = (
             configs_ref.where('template_uuid', '==', template_uuid)
             .where('included_uris_hash', '==', included_uris_hash)
-            .where('config_type', '==', 'DYNAMIC')
+            .where('config_type', '==', config_type_short)  # TODO: do we need this
             .where('config_status', '!=', ConfigStatus.INACTIVE)
             .where('group_key', '==', group_key)
         )
-
         matches = query.get()
-
         for match in matches:
             if match.exists:
                 config_uuid_match = match.id
                 # print('Config already exists. Config_uuid: ' + str(config_uuid_match))
 
-                # update status to INACTIVE 
-                self.db.collection('dynamic_configs').document(config_uuid_match).update({
+                # update status to INACTIVE
+                self.db.collection(config_type).document(config_uuid_match).update({
                     'config_status': ConfigStatus.INACTIVE
                 })
                 print('Updated status to INACTIVE.')
 
         config_uuid = uuid.uuid1().hex
-        config = self.db.collection('dynamic_configs')
+        config = self.db.collection(config_type)
         doc_ref = config.document(config_uuid)
         doc = {
             'config_uuid': config_uuid,
-            'config_type': 'DYNAMIC',
+            'config_type': config_type_short,
             'config_status': config_status,
             'creation_time': datetime.utcnow(),
             'fields': fields,
@@ -476,25 +408,26 @@ class TagEngineUtils:
             'included_uris_hash': included_uris_hash,
             'excluded_uris': excluded_uris,
             'template_uuid': template_uuid,
-            'refresh_mode': refresh_mode,  # ON_DEMAND refresh mode
+            'refresh_mode': refresh_mode,
             'refresh_frequency': 0,
             'tag_history': tag_history,
             'tag_stream': tag_stream,
             'group_key': group_key,
             'owner_user_id': owner_user_id,
             'version': 1,
-            'scheduling_status': 'PENDING',
         }
+        doc.update(kwargs)
         if refresh_mode == 'AUTO':
             delta, next_run = self.validate_auto_refresh(refresh_frequency, refresh_unit)
             doc.update({
                 'refresh_frequency': delta,
                 'refresh_unit': refresh_unit,
                 'next_run': next_run,
+                'scheduling_status': 'PENDING',
             })
         doc_ref.set(doc)
 
-        print('Created new dynamic config.')
+        print(f'Created new {config_type_short} config.')
 
         return config_uuid, included_uris_hash
 
@@ -519,261 +452,63 @@ class TagEngineUtils:
 
         return delta, next_run
 
+    def write_static_config(self, group_key, owner_user_id, config_status, fields, included_uris, excluded_uris,
+                            template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream,
+                            overwrite=False):
+        return self.__write_config__('static_configs', group_key=group_key, owner_user_id=owner_user_id,
+                                     config_status=config_status, fields=fields, included_uris=included_uris,
+                                     excluded_uris=excluded_uris, template_uuid=template_uuid,
+                                     refresh_mode=refresh_mode, refresh_frequency=refresh_frequency,
+                                     refresh_unit=refresh_unit, tag_history=tag_history,
+                                     tag_stream=tag_stream, overwrite=overwrite)
+
+    def write_dynamic_config(self, group_key, owner_user_id, config_status, fields, included_uris, excluded_uris,
+                             template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream):
+        self.__write_config__('dynamic_configs', group_key=group_key, owner_user_id=owner_user_id,
+                              config_status=config_status, fields=fields, included_uris=included_uris,
+                              excluded_uris=excluded_uris, template_uuid=template_uuid,
+                              refresh_mode=refresh_mode, refresh_frequency=refresh_frequency,
+                              refresh_unit=refresh_unit, tag_history=tag_history,
+                              tag_stream=tag_stream)
+
     def write_entry_config(self, group_key, owner_user_id, config_status, fields, included_uris, excluded_uris,
                            template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream):
-
         print('** enter write_entry_config **')
         print('refresh_mode: ', refresh_mode)
         print('refresh_frequency: ', refresh_frequency)
         print('refresh_unit: ', refresh_unit)
-
-        included_uris_hash = hashlib.md5(included_uris.encode()).hexdigest()
-
-        # check to see if this config already exists
-        configs_ref = self.db.collection('entry_configs')
-        query = (
-            configs_ref.where('template_uuid', '==', template_uuid)
-            .where('included_uris_hash', '==', included_uris_hash)
-            .where('config_type', '==', 'ENTRY')
-            .where('config_status', '!=', ConfigStatus.INACTIVE)
-            .where('group_key', '==', group_key)
-        )
-
-        matches = query.get()
-
-        for match in matches:
-            if match.exists:
-                config_uuid_match = match.id
-                # print('Tag config already exists. Tag_uuid: ' + str(config_uuid_match))
-
-                # update status to INACTIVE 
-                self.db.collection('entry_configs').document(config_uuid_match).update({
-                    'config_status': ConfigStatus.INACTIVE
-                })
-                print('Updated status to INACTIVE.')
-
-        config_uuid = uuid.uuid1().hex
-        config = self.db.collection('entry_configs')
-        doc_ref = config.document(config_uuid)
-        doc = {
-            'config_uuid': config_uuid,
-            'config_type': 'ENTRY',
-            'config_status': config_status,
-            'creation_time': datetime.utcnow(),
-            'fields': fields,
-            'included_uris': included_uris,
-            'included_uris_hash': included_uris_hash,
-            'excluded_uris': excluded_uris,
-            'template_uuid': template_uuid,
-            'refresh_mode': refresh_mode,  # ON_DEMAND refresh mode
-            'refresh_frequency': 0,
-            'tag_history': tag_history,
-            'tag_stream': tag_stream,
-            'group_key': group_key,
-            'owner_user_id': owner_user_id,
-            'version': 1,
-            'scheduling_status': 'PENDING',
-        }
-
-        if refresh_mode == 'AUTO':
-            delta, next_run = self.validate_auto_refresh(refresh_frequency, refresh_unit)
-            doc.update({
-                'refresh_mode': refresh_mode,  # AUTO refresh mode
-                'refresh_frequency': delta,
-                'refresh_unit': refresh_unit,
-                'next_run': next_run,
-            })
-        doc_ref.set(doc)
-
-        print('Created new entry config.')
-
-        return config_uuid, included_uris_hash
+        return self.__write_config__('entry_configs', group_key=group_key, owner_user_id=owner_user_id,
+                                     config_status=config_status, fields=fields, included_uris=included_uris,
+                                     excluded_uris=excluded_uris, template_uuid=template_uuid,
+                                     refresh_mode=refresh_mode, refresh_frequency=refresh_frequency,
+                                     refresh_unit=refresh_unit, tag_history=tag_history,
+                                     tag_stream=tag_stream)
 
     def write_glossary_config(self, group_key, owner_user_id, config_status, fields, mapping_table, included_uris,
                               excluded_uris, template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history,
                               tag_stream, overwrite=False):
 
         print('** enter write_glossary_config **')
-
-        included_uris_hash = hashlib.md5(included_uris.encode()).hexdigest()
-
-        # check to see if this config already exists
-        configs_ref = self.db.collection('glossary_configs')
-        query = (
-            configs_ref.where('template_uuid', '==', template_uuid)
-            .where('included_uris_hash', '==', included_uris_hash)
-            .where('config_type', '==', 'GLOSSARY')
-            .where('config_status', '!=', ConfigStatus.INACTIVE)
-            .where('group_key', '==', group_key)
-        )
-
-        matches = query.get()
-
-        for match in matches:
-            if match.exists:
-                config_uuid_match = match.id
-                # print('config already exists. Found config_uuid: ' + str(config_uuid_match))
-
-                # update status to INACTIVE
-                self.db.collection('glossary_configs').document(config_uuid_match).update({
-                    'config_status': ConfigStatus.INACTIVE
-                })
-                print('Updated status to INACTIVE.')
-
-        config_uuid = uuid.uuid1().hex
-        config = self.db.collection('glossary_configs')
-        doc_ref = config.document(config_uuid)
-        doc = {
-            'config_uuid': config_uuid,
-            'config_type': 'GLOSSARY',
-            'config_status': config_status,
-            'creation_time': datetime.utcnow(),
-            'fields': fields,
-            'mapping_table': mapping_table,
-            'included_uris': included_uris,
-            'included_uris_hash': included_uris_hash,
-            'excluded_uris': excluded_uris,
-            'template_uuid': template_uuid,
-            'refresh_mode': refresh_mode,  # ON_DEMAND refresh mode
-            'refresh_frequency': 0,
-            'tag_history': tag_history,
-            'tag_stream': tag_stream,
-            'version': 1,
-            'group_key': group_key,
-            'owner_user_id': owner_user_id,
-            'overwrite': overwrite,
-        }
-        if refresh_mode == 'AUTO':
-
-            delta, next_run = self.validate_auto_refresh(refresh_frequency, refresh_unit)
-
-            doc_ref.set({
-                'config_uuid': config_uuid,
-                'config_type': 'GLOSSARY',
-                'config_status': config_status,
-                'creation_time': datetime.utcnow(),
-                'fields': fields,
-                'mapping_table': mapping_table,
-                'included_uris': included_uris,
-                'included_uris_hash': included_uris_hash,
-                'excluded_uris': excluded_uris,
-                'template_uuid': template_uuid,
-                'refresh_mode': refresh_mode,  # AUTO refresh mode
-                'refresh_frequency': delta,
-                'refresh_unit': refresh_unit,
-                'tag_history': tag_history,
-                'tag_stream': tag_stream,
-                'scheduling_status': 'PENDING',
-                'next_run': next_run,
-                'version': 1,
-                'group_key': group_key,
-                'owner_user_id': owner_user_id,
-                'overwrite': overwrite
-            })
-
-        else:
-            doc_ref.set({
-
-            })
-
-        print('Created new glossary config.')
-
-        return config_uuid, included_uris_hash
+        return self.__write_config__('glossary_config', group_key=group_key, owner_user_id=owner_user_id,
+                                     config_status=config_status, fields=fields, included_uris=included_uris,
+                                     excluded_uris=excluded_uris, template_uuid=template_uuid,
+                                     refresh_mode=refresh_mode, refresh_frequency=refresh_frequency,
+                                     refresh_unit=refresh_unit, tag_history=tag_history,
+                                     tag_stream=tag_stream, overwrite=overwrite, mapping_table=mapping_table)
 
     def write_sensitive_config(self, group_key, owner_user_id, config_status, fields, dlp_dataset, mapping_table,
                                included_uris, excluded_uris, create_policy_tags, taxonomy_id, template_uuid,
                                refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream, overwrite=False):
 
         print('** enter write_sensitive_config **')
-
-        included_uris_hash = hashlib.md5(included_uris.encode()).hexdigest()
-
-        # check to see if this config already exists
-        configs_ref = self.db.collection('sensitive_configs')
-        query = (
-            configs_ref.where('template_uuid', '==', template_uuid)
-            .where('included_uris_hash', '==', included_uris_hash)
-            .where('config_type', '==', 'SENSITIVE')
-            .where('config_status', '!=', ConfigStatus.INACTIVE)
-            .where('group_key', '==', group_key)
-        )
-
-        matches = query.get()
-
-        for match in matches:
-            if match.exists:
-                config_uuid_match = match.id
-                # print('config already exists. Found config_uuid: ' + str(config_uuid_match))
-
-                # update status to INACTIVE 
-                self.db.collection('sensitive_configs').document(config_uuid_match).update({
-                    'config_status': ConfigStatus.INACTIVE
-                })
-                print('Updated status to INACTIVE.')
-
-        config_uuid = uuid.uuid1().hex
-        configs = self.db.collection('sensitive_configs')
-        doc_ref = configs.document(config_uuid)
-
-        if refresh_mode == 'AUTO':
-
-            delta, next_run = self.validate_auto_refresh(refresh_frequency, refresh_unit)
-
-            doc_ref.set({
-                'config_uuid': config_uuid,
-                'config_type': 'SENSITIVE',
-                'config_status': config_status,
-                'creation_time': datetime.utcnow(),
-                'fields': fields,
-                'dlp_dataset': dlp_dataset,
-                'mapping_table': mapping_table,
-                'included_uris': included_uris,
-                'included_uris_hash': included_uris_hash,
-                'excluded_uris': excluded_uris,
-                'create_policy_tags': create_policy_tags,
-                'taxonomy_id': taxonomy_id,
-                'template_uuid': template_uuid,
-                'refresh_mode': refresh_mode,  # AUTO refresh mode
-                'refresh_frequency': delta,
-                'refresh_unit': refresh_unit,
-                'tag_history': tag_history,
-                'tag_stream': tag_stream,
-                'scheduling_status': 'PENDING',
-                'next_run': next_run,
-                'version': 1,
-                'group_key': group_key,
-                'owner_user_id': owner_user_id,
-                'overwrite': overwrite
-            })
-
-        else:
-            doc_ref.set({
-                'config_uuid': config_uuid,
-                'config_type': 'SENSITIVE',
-                'config_status': config_status,
-                'creation_time': datetime.utcnow(),
-                'fields': fields,
-                'dlp_dataset': dlp_dataset,
-                'mapping_table': mapping_table,
-                'included_uris': included_uris,
-                'included_uris_hash': included_uris_hash,
-                'excluded_uris': excluded_uris,
-                'create_policy_tags': create_policy_tags,
-                'taxonomy_id': taxonomy_id,
-                'template_uuid': template_uuid,
-                'refresh_mode': refresh_mode,  # ON_DEMAND refresh mode
-                'refresh_frequency': 0,
-                'tag_history': tag_history,
-                'tag_stream': tag_stream,
-                'version': 1,
-                'group_key': group_key,
-                'owner_user_id': owner_user_id,
-                'overwrite': overwrite
-            })
-
-        print('Created new sensitive config.')
-
-        return config_uuid, included_uris_hash
+        return self.__write_config__('sensitive_configs', group_key=group_key, owner_user_id=owner_user_id,
+                                     config_status=config_status, fields=fields, included_uris=included_uris,
+                                     excluded_uris=excluded_uris, template_uuid=template_uuid,
+                                     refresh_mode=refresh_mode, refresh_frequency=refresh_frequency,
+                                     refresh_unit=refresh_unit, tag_history=tag_history,
+                                     tag_stream=tag_stream, overwrite=overwrite, mapping_table=mapping_table,
+                                     dlp_dataset=dlp_dataset, create_policy_tags=create_policy_tags,
+                                     taxonomy_id=taxonomy_id)
 
     def write_restore_config(self, group_key, owner_user_id, config_status, source_template_uuid, source_template_id,
                              source_template_project, source_template_region, target_template_uuid, target_template_id,
@@ -781,6 +516,9 @@ class TagEngineUtils:
                              tag_stream, overwrite=False):
 
         print('** write_restore_config **')
+
+        # This is actually a bit different than other config types - the query is different from the generic query,
+        # and logic as well (no refresh, different properties)
 
         # check to see if this config already exists
         configs_ref = self.db.collection('restore_configs')
@@ -835,6 +573,9 @@ class TagEngineUtils:
                             template_region, metadata_import_location, tag_history, tag_stream, overwrite=False):
 
         print('** write_import_config **')
+
+        # This is actually a bit different than other config types - the query is different from the generic query,
+        # and logic as well (no refresh, different properties)
 
         # check to see if this config already exists
         configs_ref = self.db.collection('import_configs')
@@ -1140,4 +881,5 @@ if __name__ == '__main__':
     config.read("tagengine.ini")
 
     te = TagEngineUtils()
-    te.write_template('quality_template', config['DEFAULT']['PROJECT'], config['DEFAULT']['REGION'], ConfigStatus.ACTIVE)
+    te.write_template('quality_template', config['DEFAULT']['PROJECT'], config['DEFAULT']['REGION'],
+                      ConfigStatus.ACTIVE)
