@@ -67,13 +67,12 @@ class UserUtils:
     def get_groups_for_user(self, user_id_or_email: str) -> List[dict]:
         logging.info(f"Fetching groups for user {user_id_or_email}")
         try:
-
+            memberKey = user_id_or_email.replace("accounts.google.com:", "").strip()
             # for group in list_response
             groups = []
             for group_email, group in self.groups.items():
-                is_member = self.service.members() \
-                    .hasMember(groupKey=group_email, memberKey=user_id_or_email.replace("accounts.google.com:", "")) \
-                    .execute()
+                is_member_req = self.service.members().hasMember(groupKey=group['group_key'], memberKey=memberKey)
+                is_member = is_member_req.execute()
                 if is_member.get("isMember") is True:
                     groups.append(group)
             return groups
@@ -81,10 +80,6 @@ class UserUtils:
             import sys
             logging.error("Error---")
             logging.exception(e)
-            exc_type, exc_value, tb = sys.exc_info()
-            tb.print_stack()
-            tb.print_tb()
-            tb.print_exception()
             return []
 
     @staticmethod

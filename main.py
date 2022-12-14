@@ -18,7 +18,7 @@ import logging.config
 import os
 from typing import List
 
-from flask import Flask, render_template, request, jsonify, json, session
+from flask import Flask, render_template, request, jsonify, json, session, redirect, url_for
 
 import BackupFileParser as bfp
 import CsvParser as cp
@@ -97,24 +97,17 @@ def get_groups():
     """
     Method for refreshing groups on each request, if it's not present in the session
     """
-    if not session.get("groups") or not session.get("user_id"):
-        user_id = request.headers.get("X-Goog-Authenticated-User-Id")
-        if user_id and not session.get("user_id"):
-            session["user_id"] = user_id
+    if not session.get("groups") or not session.get("user_email"):
+        user_email = request.headers.get("X-Goog-Authenticated-User-Email")
+        if user_email and not session.get("user_id"):
+            session["user_id"] = request.headers.get("X-Goog-Authenticated-User-Id")
             session["user_email"] = request.headers.get("X-Goog-Authenticated-User-Email")
             session["user_jwt_assertion"] = request.headers.get("X-Goog-Iap-Jwt-Assertion")
-        # HACK: for development environment, we cannot use IAP, so get the user_id from env var
-        if os.environ.get("FLASK_ENV") == "development":
-            if not session.get("user_id") and os.environ.get("USE_USER_ID"):
-                session["user_id"] = os.environ.get("USE_USER_ID")
-            if not session.get("user_email") and os.environ.get("USE_USER_EMAIL"):
-                session["user_email"] = os.environ.get("USE_USER_EMAIL")
-            if not session.get("user_jwt_assertion") and os.environ.get("USE_USER_ASSERTION"):
-                session["user_jwt_assertion"] = os.environ.get("USE_USER_ASSERTION")
-        if session.get('user_id'):
-            logging.info(f"Getting groups for user {session['user_id']}")
-            session["groups"] = user_utils.get_groups_for_user(session["user_id"])
-            logging.info(f"Got groups ({session['groups']}) for user {session['user_id']}")
+            logging.info(f"Getting groups for user {session['user_email']}")
+            session["groups"] = user_utils.get_groups_for_user(session["user_email"])
+            logging.info(f"Got groups ({session['groups']}) for user {session['user_email']}")
+        else:
+            return render_template("error.html", message="Not authenticated")
 
 
 # #################### UI METHODS #################
