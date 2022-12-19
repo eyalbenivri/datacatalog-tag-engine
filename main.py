@@ -2556,7 +2556,7 @@ def get_job_status():
 
     elif job['job_status'] == 'COMPLETED':
         return jsonify(success=True, job_status=job['job_status'], task_count=job['task_count'],
-                       tasks_ran=job['tasks_ran'], \
+                       tasks_ran=job['tasks_ran'],
                        tasks_completed=job['tasks_completed'], tasks_failed=job['tasks_failed'])
     else:
         return jsonify(job_status=job['job_status'], task_count=job['task_count'], tasks_ran=job['tasks_ran'], \
@@ -2747,24 +2747,24 @@ def _run_task():
                                                   config['tag_stream'], config['overwrite'])
 
     if creation_status == constants.SUCCESS:
-        tm.update_task_status(shard_uuid, task_uuid, 'COMPLETED')
+        tm.update_task_status(shard_uuid, task_uuid, te.ConfigStatus.SUCCEEDED)
     else:
-        tm.update_task_status(shard_uuid, task_uuid, 'FAILED')
+        tm.update_task_status(shard_uuid, task_uuid, te.ConfigStatus.ERROR)
 
     # fan-in
     is_success, is_failed, pct_complete = jm.calculate_job_completion(job_uuid)
 
     if pct_complete == 100 and is_success:
         teu.update_config_status(config_uuid, config_type, te.ConfigStatus.ACTIVE)
-        teu.update_scheduling_status(config_uuid, config_type, 'READY')
+        teu.update_scheduling_status(config_uuid, config_type, te.SchedulingStatus.READY)
         teu.update_overwrite_flag(config_uuid, config_type)
         resp = jsonify(success=True)
     elif pct_complete == 100 and is_failed:
-        teu.update_config_status(config_uuid, config_type, 'ERROR')
+        teu.update_config_status(config_uuid, config_type, te.ConfigStatus.ERROR)
         jm.update_job_failed(job_uuid)
         resp = jsonify(success=False)
     else:
-        teu.update_config_status(config_uuid, config_type, 'PROCESSING: {}% complete'.format(pct_complete))
+        teu.update_config_status(config_uuid, config_type, te.ConfigStatus.PROCESSING_FORMAT.format(pct_complete))
         resp = jsonify(success=True)
 
     return resp

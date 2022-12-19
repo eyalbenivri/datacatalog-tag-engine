@@ -47,6 +47,7 @@ class ConfigStatus(str, Enum):
     RUNNING = 'RUNNING'
     INACTIVE = 'INACTIVE'
     ERROR = "ERROR"
+    SUCCEEDED = "SUCCEEDED"
     PROCESSING_FORMAT = "PROCESSING: {}% complete"
 
 
