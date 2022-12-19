@@ -1103,7 +1103,7 @@ def process_update_sensitive_config():
         template_exists, template_uuid = teu.read_tag_template(template_id, project_id, region, group['group_key'])
 
         new_config_uuid = teu.update_sensitive_config(group['group_key'], session['user_id'], old_config_uuid,
-                                                      te.ConfigStatus.PENDING, dlp_dataset, mapping_table,
+                                                      dlp_dataset, mapping_table,
                                                       included_uris,
                                                       excluded_uris, create_policy_tags, taxonomy_id, template_uuid,
                                                       refresh_mode, refresh_frequency, refresh_unit, tag_history,
@@ -1298,7 +1298,7 @@ def process_static_config():
 
     template_uuid = teu.write_tag_template(group['group_key'], template_id, project_id, region)
     config_uuid, included_uris_hash = teu.write_static_config(group['group_key'], session['user_id'],
-                                                              te.ConfigStatus.PENDING, fields, included_uris,
+                                                              fields, included_uris,
                                                               excluded_uris, template_uuid, refresh_mode,
                                                               refresh_frequency, refresh_unit, tag_history_option,
                                                               tag_stream_option)
@@ -1407,7 +1407,6 @@ def process_dynamic_config():
 
     template_uuid = teu.write_tag_template(group['group_key'], template_id, project_id, region)
     config_uuid, included_uris_hash = teu.write_dynamic_config(group['group_key'], session['user_id'],
-                                                               te.ConfigStatus.PENDING,
                                                                fields,
                                                                included_uris, excluded_uris, template_uuid,
                                                                refresh_mode,
@@ -1517,7 +1516,7 @@ def process_entry_config():
 
     template_uuid = teu.write_tag_template(group['group_key'], template_id, project_id, region)
     config_uuid, included_uris_hash = teu.write_entry_config(group['group_key'], session['user_id'],
-                                                             te.ConfigStatus.PENDING, fields,
+                                                             fields,
                                                              included_uris, excluded_uris, template_uuid, refresh_mode,
                                                              refresh_frequency, refresh_unit, tag_history_option,
                                                              tag_stream_option)
@@ -1629,7 +1628,7 @@ def process_glossary_config():
     template_uuid = teu.write_tag_template(group['group_key'], template_id, project_id, region)
 
     config_uuid, included_uris_hash = teu.write_glossary_config(group['group_key'], session['user_id'],
-                                                                te.ConfigStatus.PENDING, fields, mapping_table,
+                                                                fields, mapping_table,
                                                                 included_uris, excluded_uris, template_uuid,
                                                                 refresh_mode, refresh_frequency, refresh_unit,
                                                                 tag_history_option, tag_stream_option, overwrite)
@@ -1754,7 +1753,7 @@ def process_sensitive_config():
     template_uuid = teu.write_tag_template(group['group_key'], template_id, project_id, region)
 
     config_uuid, included_uris_hash = teu.write_sensitive_config(group['group_key'], session['user_id'],
-                                                                 te.ConfigStatus.PENDING, fields, dlp_dataset,
+                                                                 fields, dlp_dataset,
                                                                  mapping_table, included_uris, excluded_uris,
                                                                  create_policy_tags, taxonomy_id, template_uuid,
                                                                  refresh_mode, refresh_frequency, refresh_unit,
@@ -2044,7 +2043,6 @@ def dynamic_create():
     tag_stream = json['tag_stream']
 
     config_uuid, included_uris_hash = teu.write_dynamic_config(group['group_key'], session['user_id'],
-                                                               te.ConfigStatus.PENDING,
                                                                fields,
                                                                included_uris, excluded_uris, template_uuid,
                                                                refresh_mode,
@@ -2105,8 +2103,7 @@ def static_create():
     # since we are creating a new config, we are overwriting any previously created tags
     overwrite = True
 
-    config_uuid, included_uris_hash = teu.write_static_config(group['group_key'], session['user_id'],
-                                                              te.ConfigStatus.PENDING, fields,
+    config_uuid, included_uris_hash = teu.write_static_config(group['group_key'], session['user_id'], fields,
                                                               included_uris, excluded_uris, template_uuid, refresh_mode,
                                                               refresh_frequency, refresh_unit, tag_history, tag_stream,
                                                               overwrite)
@@ -2169,7 +2166,7 @@ def entry_create():
     tag_stream = json['tag_stream']
 
     config_uuid, included_uris_hash = teu.write_entry_config(group['group_key'], session['user_id'],
-                                                             te.ConfigStatus.PENDING, fields,
+                                                             fields,
                                                              included_uris, excluded_uris, template_uuid, refresh_mode,
                                                              refresh_frequency, refresh_unit, tag_history, tag_stream)
 
@@ -2343,7 +2340,6 @@ def sensitive_create():
     overwrite = True
 
     config_uuid, included_uris_hash = teu.write_sensitive_config(group['group_key'], session['user_id'],
-                                                                 te.ConfigStatus.PENDING,
                                                                  fields, dlp_dataset, mapping_table, included_uris,
                                                                  excluded_uris, create_policy_tags, taxonomy_id,
                                                                  template_uuid, refresh_mode, refresh_frequency,

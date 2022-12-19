@@ -28,6 +28,18 @@ import DataCatalogUtils as dc
 from enum import Enum
 
 
+class SchedulingStatus(str, Enum):
+    PENDING = "PENDING"
+    READY = "READY"
+
+
+class VerificationStatus(str, Enum):
+    NOT_STARTED = "NOT_STARTED"
+    IN_PROGRESS = "IN_PROGRESS"
+    FAILED = "FAILED"
+    SUCCEEDED = "SUCCEEDED"
+
+
 class ConfigStatus(str, Enum):
     UNVERIFIED = "UNVERIFIED"
     PENDING = 'PENDING'
@@ -267,14 +279,21 @@ class TagEngineUtils:
             report.append(group_report_entry)
         return report
 
-    def update_config_status(self, config_uuid, config_type, status):
+    def update_verification_status(self, config_uuid, config_type, status: VerificationStatus):
+
+        coll_name = self.get_config_collection(config_type)
+        self.db.collection(coll_name).document(config_uuid).update({
+            'verification_status': status
+        })
+
+    def update_config_status(self, config_uuid, config_type, status: ConfigStatus):
 
         coll_name = self.get_config_collection(config_type)
         self.db.collection(coll_name).document(config_uuid).update({
             'config_status': status
         })
 
-    def update_scheduling_status(self, config_uuid, config_type, status):
+    def update_scheduling_status(self, config_uuid, config_type, status: SchedulingStatus):
 
         coll_name = self.get_config_collection(config_type)
         config_ref = self.db.collection(coll_name).document(config_uuid)
@@ -369,7 +388,7 @@ class TagEngineUtils:
 
         return template_uuid
 
-    def __write_config__(self, config_type, group_key, owner_user_id, config_status, fields, included_uris,
+    def __write_config__(self, config_type, group_key, owner_user_id, fields, included_uris,
                          excluded_uris, template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history,
                          tag_stream, **kwargs):
         included_uris_hash = hashlib.md5(included_uris.encode()).hexdigest()
@@ -401,7 +420,8 @@ class TagEngineUtils:
         doc = {
             'config_uuid': config_uuid,
             'config_type': config_type_short,
-            'config_status': config_status,
+            'config_status': ConfigStatus.UNVERIFIED,
+            'verification_status': VerificationStatus.NOT_STARTED,
             'creation_time': datetime.utcnow(),
             'fields': fields,
             'included_uris': included_uris,
@@ -423,7 +443,7 @@ class TagEngineUtils:
                 'refresh_frequency': delta,
                 'refresh_unit': refresh_unit,
                 'next_run': next_run,
-                'scheduling_status': 'PENDING',
+                'scheduling_status': SchedulingStatus.PENDING,
             })
         doc_ref.set(doc)
 
@@ -452,63 +472,107 @@ class TagEngineUtils:
 
         return delta, next_run
 
-    def write_static_config(self, group_key, owner_user_id, config_status, fields, included_uris, excluded_uris,
+    def write_static_config(self, group_key, owner_user_id, fields, included_uris, excluded_uris,
                             template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream,
-                            overwrite=False):
-        return self.__write_config__('static_configs', group_key=group_key, owner_user_id=owner_user_id,
-                                     config_status=config_status, fields=fields, included_uris=included_uris,
-                                     excluded_uris=excluded_uris, template_uuid=template_uuid,
-                                     refresh_mode=refresh_mode, refresh_frequency=refresh_frequency,
-                                     refresh_unit=refresh_unit, tag_history=tag_history,
-                                     tag_stream=tag_stream, overwrite=overwrite)
+                            overwrite=False, old_config_uuid=None):
+        return self.__write_config__('static_configs',
+                                     group_key=group_key,
+                                     owner_user_id=owner_user_id,
+                                     fields=fields,
+                                     included_uris=included_uris,
+                                     excluded_uris=excluded_uris,
+                                     template_uuid=template_uuid,
+                                     refresh_mode=refresh_mode,
+                                     refresh_frequency=refresh_frequency,
+                                     refresh_unit=refresh_unit,
+                                     tag_history=tag_history,
+                                     tag_stream=tag_stream,
+                                     overwrite=overwrite,
+                                     old_config_uuid=old_config_uuid)
 
-    def write_dynamic_config(self, group_key, owner_user_id, config_status, fields, included_uris, excluded_uris,
-                             template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream):
-        self.__write_config__('dynamic_configs', group_key=group_key, owner_user_id=owner_user_id,
-                              config_status=config_status, fields=fields, included_uris=included_uris,
-                              excluded_uris=excluded_uris, template_uuid=template_uuid,
-                              refresh_mode=refresh_mode, refresh_frequency=refresh_frequency,
-                              refresh_unit=refresh_unit, tag_history=tag_history,
-                              tag_stream=tag_stream)
+    def write_dynamic_config(self, group_key, owner_user_id, fields, included_uris, excluded_uris,
+                             template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream,
+                             old_config_uuid=None):
+        return self.__write_config__('dynamic_configs',
+                                     group_key=group_key,
+                                     owner_user_id=owner_user_id,
+                                     fields=fields,
+                                     included_uris=included_uris,
+                                     excluded_uris=excluded_uris,
+                                     template_uuid=template_uuid,
+                                     refresh_mode=refresh_mode,
+                                     refresh_frequency=refresh_frequency,
+                                     refresh_unit=refresh_unit,
+                                     tag_history=tag_history,
+                                     tag_stream=tag_stream,
+                                     old_config_uuid=old_config_uuid)
 
-    def write_entry_config(self, group_key, owner_user_id, config_status, fields, included_uris, excluded_uris,
-                           template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream):
+    def write_entry_config(self, group_key, owner_user_id, fields, included_uris, excluded_uris,
+                           template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream,
+                           old_config_uuid=None):
         print('** enter write_entry_config **')
         print('refresh_mode: ', refresh_mode)
         print('refresh_frequency: ', refresh_frequency)
         print('refresh_unit: ', refresh_unit)
-        return self.__write_config__('entry_configs', group_key=group_key, owner_user_id=owner_user_id,
-                                     config_status=config_status, fields=fields, included_uris=included_uris,
-                                     excluded_uris=excluded_uris, template_uuid=template_uuid,
-                                     refresh_mode=refresh_mode, refresh_frequency=refresh_frequency,
-                                     refresh_unit=refresh_unit, tag_history=tag_history,
-                                     tag_stream=tag_stream)
+        return self.__write_config__('entry_configs',
+                                     group_key=group_key,
+                                     owner_user_id=owner_user_id,
+                                     fields=fields,
+                                     included_uris=included_uris,
+                                     excluded_uris=excluded_uris,
+                                     template_uuid=template_uuid,
+                                     refresh_mode=refresh_mode,
+                                     refresh_frequency=refresh_frequency,
+                                     refresh_unit=refresh_unit,
+                                     tag_history=tag_history,
+                                     tag_stream=tag_stream,
+                                     old_config_uuid=old_config_uuid)
 
-    def write_glossary_config(self, group_key, owner_user_id, config_status, fields, mapping_table, included_uris,
+    def write_glossary_config(self, group_key, owner_user_id, fields, mapping_table, included_uris,
                               excluded_uris, template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history,
-                              tag_stream, overwrite=False):
+                              tag_stream, overwrite=False, old_config_uuid=None):
 
         print('** enter write_glossary_config **')
-        return self.__write_config__('glossary_config', group_key=group_key, owner_user_id=owner_user_id,
-                                     config_status=config_status, fields=fields, included_uris=included_uris,
-                                     excluded_uris=excluded_uris, template_uuid=template_uuid,
-                                     refresh_mode=refresh_mode, refresh_frequency=refresh_frequency,
-                                     refresh_unit=refresh_unit, tag_history=tag_history,
-                                     tag_stream=tag_stream, overwrite=overwrite, mapping_table=mapping_table)
+        return self.__write_config__('glossary_config',
+                                     group_key=group_key,
+                                     owner_user_id=owner_user_id,
+                                     fields=fields,
+                                     included_uris=included_uris,
+                                     excluded_uris=excluded_uris,
+                                     template_uuid=template_uuid,
+                                     refresh_mode=refresh_mode,
+                                     refresh_frequency=refresh_frequency,
+                                     refresh_unit=refresh_unit,
+                                     tag_history=tag_history,
+                                     tag_stream=tag_stream,
+                                     overwrite=overwrite,
+                                     mapping_table=mapping_table,
+                                     old_config_uuid=old_config_uuid)
 
-    def write_sensitive_config(self, group_key, owner_user_id, config_status, fields, dlp_dataset, mapping_table,
+    def write_sensitive_config(self, group_key, owner_user_id, fields, dlp_dataset, mapping_table,
                                included_uris, excluded_uris, create_policy_tags, taxonomy_id, template_uuid,
-                               refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream, overwrite=False):
+                               refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream, overwrite=False,
+                               old_config_uuid=None):
 
         print('** enter write_sensitive_config **')
-        return self.__write_config__('sensitive_configs', group_key=group_key, owner_user_id=owner_user_id,
-                                     config_status=config_status, fields=fields, included_uris=included_uris,
-                                     excluded_uris=excluded_uris, template_uuid=template_uuid,
-                                     refresh_mode=refresh_mode, refresh_frequency=refresh_frequency,
-                                     refresh_unit=refresh_unit, tag_history=tag_history,
-                                     tag_stream=tag_stream, overwrite=overwrite, mapping_table=mapping_table,
-                                     dlp_dataset=dlp_dataset, create_policy_tags=create_policy_tags,
-                                     taxonomy_id=taxonomy_id)
+        return self.__write_config__('sensitive_configs',
+                                     group_key=group_key,
+                                     owner_user_id=owner_user_id,
+                                     fields=fields,
+                                     included_uris=included_uris,
+                                     excluded_uris=excluded_uris,
+                                     template_uuid=template_uuid,
+                                     refresh_mode=refresh_mode,
+                                     refresh_frequency=refresh_frequency,
+                                     refresh_unit=refresh_unit,
+                                     tag_history=tag_history,
+                                     tag_stream=tag_stream,
+                                     overwrite=overwrite,
+                                     mapping_table=mapping_table,
+                                     dlp_dataset=dlp_dataset,
+                                     create_policy_tags=create_policy_tags,
+                                     taxonomy_id=taxonomy_id,
+                                     old_config_uuid=old_config_uuid)
 
     def write_restore_config(self, group_key, owner_user_id, config_status, source_template_uuid, source_template_id,
                              source_template_project, source_template_region, target_template_uuid, target_template_id,
@@ -745,7 +809,7 @@ class TagEngineUtils:
         for coll_name in colls:
             config_ref = self.db.collection(coll_name)
             config_ref = config_ref.where("refresh_mode", "==", "AUTO")
-            config_ref = config_ref.where("scheduling_status", "==", "READY")
+            config_ref = config_ref.where("scheduling_status", "==", SchedulingStatus.READY)
             config_ref = config_ref.where("config_status", "==", ConfigStatus.ACTIVE)
             config_ref = config_ref.where("next_run", "<=", datetime.utcnow())
 
@@ -794,7 +858,7 @@ class TagEngineUtils:
 
         return success, config_result
 
-    def update_config(self, group_key, owner_user_id, old_config_uuid, config_type, config_status, fields,
+    def update_config(self, group_key, owner_user_id, old_config_uuid, config_type, fields,
                       included_uris, excluded_uris, template_uuid, refresh_mode, refresh_frequency, refresh_unit,
                       tag_history, tag_stream, overwrite=False, mapping_table=None):
 
@@ -804,39 +868,67 @@ class TagEngineUtils:
         })
 
         if config_type == 'STATIC':
-            new_config_uuid, included_uris_hash = self.write_static_config(group_key, owner_user_id, config_status,
-                                                                           fields,
-                                                                           included_uris, excluded_uris, template_uuid,
-                                                                           refresh_mode, refresh_frequency,
-                                                                           refresh_unit, tag_history, tag_stream,
-                                                                           overwrite)
+            new_config_uuid, included_uris_hash = self.write_static_config(group_key=group_key,
+                                                                           owner_user_id=owner_user_id,
+                                                                           fields=fields,
+                                                                           included_uris=included_uris,
+                                                                           excluded_uris=excluded_uris,
+                                                                           template_uuid=template_uuid,
+                                                                           refresh_mode=refresh_mode,
+                                                                           refresh_frequency=refresh_frequency,
+                                                                           refresh_unit=refresh_unit,
+                                                                           tag_history=tag_history,
+                                                                           tag_stream=tag_stream,
+                                                                           overwrite=overwrite,
+                                                                           old_config_uuid=old_config_uuid)
 
         if config_type == 'DYNAMIC':
-            new_config_uuid, included_uris_hash = self.write_dynamic_config(group_key, owner_user_id, config_status,
-                                                                            fields,
-                                                                            included_uris, excluded_uris, template_uuid,
-                                                                            refresh_mode, refresh_frequency,
-                                                                            refresh_unit, tag_history, tag_stream)
+            new_config_uuid, included_uris_hash = self.write_dynamic_config(group_key=group_key,
+                                                                            owner_user_id=owner_user_id,
+                                                                            fields=fields,
+                                                                            included_uris=included_uris,
+                                                                            excluded_uris=excluded_uris,
+                                                                            template_uuid=template_uuid,
+                                                                            refresh_mode=refresh_mode,
+                                                                            refresh_frequency=refresh_frequency,
+                                                                            refresh_unit=refresh_unit,
+                                                                            tag_history=tag_history,
+                                                                            tag_stream=tag_stream,
+                                                                            old_config_uuid=old_config_uuid)
         if config_type == 'ENTRY':
-            new_config_uuid, included_uris_hash = self.write_entry_config(group_key, owner_user_id, config_status,
-                                                                          fields,
-                                                                          included_uris,
-                                                                          excluded_uris, template_uuid, refresh_mode,
-                                                                          refresh_frequency, refresh_unit, tag_history,
-                                                                          tag_stream)
+            new_config_uuid, included_uris_hash = self.write_entry_config(group_key=group_key,
+                                                                          owner_user_id=owner_user_id,
+                                                                          fields=fields,
+                                                                          included_uris=included_uris,
+                                                                          excluded_uris=excluded_uris,
+                                                                          template_uuid=template_uuid,
+                                                                          refresh_mode=refresh_mode,
+                                                                          refresh_frequency=refresh_frequency,
+                                                                          refresh_unit=refresh_unit,
+                                                                          tag_history=tag_history,
+                                                                          tag_stream=tag_stream,
+                                                                          old_config_uuid=old_config_uuid)
 
         if config_type == 'GLOSSARY':
-            new_config_uuid, included_uris_hash = self.write_glossary_config(group_key, owner_user_id, config_status,
-                                                                             fields,
-                                                                             mapping_table, included_uris,
-                                                                             excluded_uris, template_uuid, refresh_mode,
-                                                                             refresh_frequency, refresh_unit,
-                                                                             tag_history, tag_stream, overwrite)
+            new_config_uuid, included_uris_hash = self.write_glossary_config(group_key=group_key,
+                                                                             owner_user_id=owner_user_id,
+                                                                             fields=fields,
+                                                                             mapping_table=mapping_table,
+                                                                             included_uris=included_uris,
+                                                                             excluded_uris=excluded_uris,
+                                                                             template_uuid=template_uuid,
+                                                                             refresh_mode=refresh_mode,
+                                                                             refresh_frequency=refresh_frequency,
+                                                                             refresh_unit=refresh_unit,
+                                                                             tag_history=tag_history,
+                                                                             tag_stream=tag_stream,
+                                                                             overwrite=overwrite,
+                                                                             old_config_uuid=old_config_uuid)
         # note: no need to return the included_uris_hash
 
         return new_config_uuid
 
-    def update_sensitive_config(self, group_key, owner_user_id, old_config_uuid, config_status, dlp_dataset,
+    def update_sensitive_config(self, group_key, owner_user_id, old_config_uuid, dlp_dataset,
                                 mapping_table, included_uris, excluded_uris, create_policy_tags, taxonomy_id,
                                 template_uuid, refresh_mode, refresh_frequency, refresh_unit, tag_history, tag_stream,
                                 overwrite):
@@ -847,13 +939,23 @@ class TagEngineUtils:
 
         config = self.read_config(old_config_uuid, 'SENSITIVE')
 
-        new_config_uuid, included_uris_hash = self.write_sensitive_config(group_key, owner_user_id, config_status,
-                                                                          config['fields'],
-                                                                          dlp_dataset, mapping_table, included_uris,
-                                                                          excluded_uris, create_policy_tags,
-                                                                          taxonomy_id, template_uuid, refresh_mode,
-                                                                          refresh_frequency, refresh_unit, tag_history,
-                                                                          tag_stream, overwrite)
+        new_config_uuid, included_uris_hash = self.write_sensitive_config(group_key=group_key,
+                                                                          owner_user_id=owner_user_id,
+                                                                          fields=config['fields'],
+                                                                          dlp_dataset=dlp_dataset,
+                                                                          mapping_table=mapping_table,
+                                                                          included_uris=included_uris,
+                                                                          excluded_uris=excluded_uris,
+                                                                          create_policy_tags=create_policy_tags,
+                                                                          taxonomy_id=taxonomy_id,
+                                                                          template_uuid=template_uuid,
+                                                                          refresh_mode=refresh_mode,
+                                                                          refresh_frequency=refresh_frequency,
+                                                                          refresh_unit=refresh_unit,
+                                                                          tag_history=tag_history,
+                                                                          tag_stream=tag_stream,
+                                                                          overwrite=overwrite,
+                                                                          old_config_uuid=old_config_uuid)
 
         return new_config_uuid
 
