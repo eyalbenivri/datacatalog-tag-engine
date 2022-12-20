@@ -12,28 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import requests, configparser, time
+import configparser
+import os
+import time
 from datetime import datetime, date
 from datetime import time as dtime
-import pytz
 from operator import itemgetter
+
 import pandas as pd
+import pytz
 from google.api_core.exceptions import PermissionDenied
-from pyarrow import parquet
-import json
-import os
-
-from google.protobuf.timestamp_pb2 import Timestamp
-from google.cloud import datacatalog
-from google.cloud.datacatalog_v1 import types
-from google.cloud.datacatalog import DataCatalogClient
 from google.cloud import bigquery
+from google.cloud import datacatalog
 from google.cloud import storage
+from google.cloud.datacatalog import DataCatalogClient
+from google.cloud.datacatalog_v1 import types
+# TODO: this might be a problem of version... since versions in requirements.txt are not pinned, I guess I have a
+#  different version of protobuf, meaning that Timestamp class does not exists here.
+from google.protobuf.timestamp_pb2 import Timestamp
+from pyarrow import parquet
 
-import Resources as res
-import TagEngineUtils as te
 import BigQueryUtils as bq
 import PubSubUtils as ps
+import TagEngineUtils as te
 import constants
 from UserUtils import UserUtils
 
@@ -152,23 +153,23 @@ class DataCatalogUtils:
         tag_list = self.client.list_tags(parent=parent, timeout=120)
         
         for tag_instance in tag_list:
-            
-            #print('tag_instance: ' + str(tag_instance))
-            #print('tag name: ' + str(tag_instance.name))
+
+            # print('tag_instance: ' + str(tag_instance))
+            # print('tag name: ' + str(tag_instance.name))
             tagged_column = tag_instance.column
-            
-            #print('found tagged column: ' + tagged_column)
-            template: "projects/data-mesh-344315/locations/us-central1/tagTemplates/cities_311"
-            
+
+            # print('found tagged column: ' + tagged_column)
+            # template: "projects/data-mesh-344315/locations/us-central1/tagTemplates/cities_311"
+
             tagged_template_project = tag_instance.template.split('/')[1]
             tagged_template_location = tag_instance.template.split('/')[3]
             tagged_template_id = tag_instance.template.split('/')[5]
-            
+
             if column == "" or column == None:
                 # looking for a table-level tag
                 if tagged_template_id == self.template_id and tagged_template_project == self.project_id and \
-                    tagged_template_location == self.region and tagged_column == "":
-                    #print('DEBUG: Table tag exists.')
+                        tagged_template_location == self.region and tagged_column == "":
+                    # print('DEBUG: Table tag exists.')
                     tag_exists = True
                     tag_id = tag_instance.name
                     #print('DEBUG: tag_id: ' + tag_id)
@@ -553,6 +554,7 @@ class DataCatalogUtils:
             
             if tag_stream:
                 psu = ps.PubSubUtils()
+                # TODO: this feels like a bug - not variable called column is defined
                 psu.copy_tag(self.template_id, uri, column, fields)
                                     
         return creation_status
@@ -1487,6 +1489,7 @@ class DataCatalogUtils:
             query_str = query_expression
             
         if column_index != -1:
+            # TODO: This feels like a bug - no variable called column is defined
             query_str = query_str.replace('$column', column)
             
         return query_str
@@ -1589,6 +1592,7 @@ class DataCatalogUtils:
         except ValueError:
             error_exists = True
             print("cast error, writing error entry")
+            # TODO: This seems like a bug - no variable called query_str is defined
             store.write_tag_value_error('cast error in sql query: ' + query_str)
         
         return tag, error_exists

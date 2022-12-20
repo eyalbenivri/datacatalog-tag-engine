@@ -42,7 +42,7 @@
                     {{ dict_field['field_id'] }} (type {{ dict_field['field_type'] }}):
                 </td>
                 <td>
-                    {% if dict_field['field_type'] == "enum": %}
+                    {% if dict_field['field_type'] == "enum" %}
 
                         <select name="{{ dict_field['field_id'] }}" style="width: 207px;padding: 3px;">
                             {% for enum_value in dict_field['enum_values'] %}

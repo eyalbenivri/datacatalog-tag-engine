@@ -11,17 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import configparser
 
+from google.api_core.exceptions import NotFound
 from google.cloud import bigquery
 from google.cloud import storage
-import constants, configparser
+
+import constants
+
 
 class Resources:
-    
+
     bigquery_resource = "bigquery"
     pubsub_resource = "pubsub"
     gcs_resource = "gs:"
-            
+
     @staticmethod
     def get_resources(included_uris, excluded_uris):
         
@@ -103,7 +107,7 @@ class Resources:
             split_path = uri.strip().split("/")
 
             if split_path[1] != "project":
-                print("Error: invalid URI " + path)
+                print("Error: invalid URI " + uri)
                 return None
             
             project_id = split_path[2]
@@ -148,7 +152,7 @@ class Resources:
                 #print("table_expression: " + table_expression)
 
                 if path_length < 6 or path_length > 7:
-                    print("Error. Invalid URI " + path)
+                    print("Error. Invalid URI " + uri)
                     return None
         
                 if path_length == 6:

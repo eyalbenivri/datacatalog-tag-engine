@@ -18,7 +18,7 @@ import logging.config
 import os
 from typing import List
 
-from flask import Flask, render_template, request, jsonify, json, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, json, session
 
 import BackupFileParser as bfp
 import CsvParser as cp

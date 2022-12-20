@@ -106,6 +106,27 @@ resource "google_cloud_tasks_queue" "work_queue" {
   depends_on = [google_project_service.tag_engine_project]
 }
 
+resource "google_cloud_tasks_queue" "verification_queue" {
+  name     = "tag-engine-verification-queue"
+  location = var.app_engine_subregion
+  project  = var.tag_engine_project
+
+  rate_limits {
+    max_concurrent_dispatches = 500
+    max_dispatches_per_second = 500
+  }
+
+  retry_config {
+    max_attempts = 1
+  }
+
+  stackdriver_logging_config {
+    sampling_ratio = 0.9
+  }
+
+  depends_on = [google_project_service.tag_engine_project]
+}
+
 
 # Cloud scheduler entries
 resource "google_cloud_scheduler_job" "scheduled_auto_updates" {
