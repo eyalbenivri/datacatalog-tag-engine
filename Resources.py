@@ -233,7 +233,6 @@ class Resources:
             
                     except:
                         print("NotFound: table " + table_id + " not found.")
-        
 
                     if column_exists == True:
                         #print("column exists")
